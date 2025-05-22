@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>金融数据平台 - 风险警报</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36BFFA',
+                        success: '#00B42A',
+                        warning: '#FF7D00',
+                        danger: '#F53F3F',
+                        dark: '#1D2129',
+                        'gray-100': '#F2F3F5',
+                        'gray-200': '#E5E6EB',
+                        'gray-300': '#C9CDD4',
+                        'gray-400': '#86909C',
+                        'gray-500': '#4E5969',
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'card': '0 4px 20px rgba(0, 0, 0, 0.08)',
+                        'card-hover': '0 8px 30px rgba(0, 0, 0, 0.12)',
+                    }
+                },
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .menu-active {
+                @apply bg-primary/10 text-primary border-r-4 border-primary;
+            }
+            .card-transition {
+                @apply transition-all duration-300 ease-in-out;
+            }
+            .nav-item {
+                @apply flex items-center gap-3 px-4 py-3 text-gray-500 hover:bg-primary/5 hover:text-primary card-transition;
+            }
+            .btn-primary {
+                @apply bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg transition-all duration-300;
+            }
+            .btn-outline {
+                @apply border border-gray-300 hover:border-primary hover:text-primary px-4 py-2 rounded-lg transition-all duration-300;
+            }
+            .alert-item {
+                @apply p-4 rounded-lg mb-4 transition-all duration-300 hover:shadow-lg;
+            }
+            .alert-item-danger {
+                @apply bg-danger/5 border border-danger/20;
+            }
+            .alert-item-warning {
+                @apply bg-warning/5 border border-warning/20;
+            }
+            .alert-item-info {
+                @apply bg-primary/5 border border-primary/20;
+            }
+            .alert-icon {
+                @apply w-10 h-10 rounded-full flex items-center justify-center mr-4;
+            }
+            .alert-icon-danger {
+                @apply bg-danger/10 text-danger;
+            }
+            .alert-icon-warning {
+                @apply bg-warning/10 text-warning;
+            }
+            .alert-icon-info {
+                @apply bg-primary/10 text-primary;
+            }
+        }
+    </style>
+</head>
+<body class="font-inter bg-gray-100 text-dark min-h-screen flex flex-col">
+    <!-- 顶部导航栏 -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-line-chart text-primary text-2xl"></i>
+                <h1 class="text-xl font-bold text-dark hidden sm:block">金融数据平台</h1>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="relative hidden sm:block">
+                    <input type="text" placeholder="搜索..." class="pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
+                    <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                </div>
+                <button class="relative text-gray-500 hover:text-primary transition-colors">
+                    <i class="fa-solid fa-bell text-xl"></i>
+                    <span class="absolute -top-1 -right-1 bg-danger text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">3</span>
+                </button>
+                <div class="flex items-center gap-2">
+                    <img src="https://picsum.photos/id/1005/200/200" alt="用户头像" class="w-8 h-8 rounded-full object-cover border-2 border-primary/20">
+                    <span class="hidden sm:block">张三</span>
+                    <i class="fa-solid fa-angle-down text-gray-400"></i>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden">
+        <!-- 左侧菜单栏 -->
+        <aside class="w-16 sm:w-64 bg-white shadow-sm h-[calc(100vh-64px)] sticky top-[64px] transition-all duration-300">
+            <nav class="py-4 h-full flex flex-col">
+                <div class="flex flex-col">
+                    <a href="{% url 'account' %}" class="nav-item ">
+                        <i class="fa-solid fa-user-circle text-xl"></i>
+                        <span class="hidden sm:block">账号管理</span>
+                    </a>
+                    <a href="{% url 'service' %}" class="nav-item">
+                        <i class="fa-solid fa-headphones text-xl"></i>
+                        <span class="hidden sm:block">智能客服</span>
+                    </a>
+                    <a href="{% url 'alert' %}" class="nav-item menu-active">
+                        <i class="fa-solid fa-exclamation-triangle text-xl"></i>
+                        <span class="hidden sm:block">风险警报</span>
+                    </a>
+                    <a href="{% url 'advice' %}" class="nav-item">
+                        <i class="fa-solid fa-lightbulb text-xl"></i>
+                        <span class="hidden sm:block">投资建议</span>
+                    </a>
+                    <a href="{% url 'query' %}" class="nav-item">
+                        <i class="fa-solid fa-search text-xl"></i>
+                        <span class="hidden sm:block">数据查询</span>
+                    </a>
+                    <a href="{% url 'predict' %}" class="nav-item">
+                        <i class="fa-solid fa-crystal-ball text-xl"></i>
+                        <span class="hidden sm:block">数据预测</span>
+                    </a>
+                </div>
+                
+                <div class="mt-auto pt-4 border-t border-gray-200">
+                    <a href="#settings" class="nav-item">
+                        <i class="fa-solid fa-cog text-xl"></i>
+                        <span class="hidden sm:block">设置</span>
+                    </a>
+                    <a href="#help" class="nav-item">
+                        <i class="fa-solid fa-question-circle text-xl"></i>
+                        <span class="hidden sm:block">帮助中心</span>
+                    </a>
+                    <a href="#logout" class="nav-item">
+                        <i class="fa-solid fa-sign-out-alt text-xl"></i>
+                        <span class="hidden sm:block">退出登录</span>
+                    </a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="flex-1 overflow-y-auto p-4 sm:p-6">
+            <div class="mb-6">
+                <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-dark">风险警报</h2>
+                <p class="text-gray-500">实时监控您的投资风险</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2">
+                    <div class="bg-white rounded-xl shadow-card p-5 mb-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-semibold text-lg">风险概览</h3>
+                            <div class="flex gap-2">
+                                <button class="btn-outline text-sm">日</button>
+                                <button class="btn-primary text-sm">周</button>
+                                <button class="btn-outline text-sm">月</button>
+                            </div>
+                        </div>
+                        <div class="h-[300px]">
+                            <canvas id="riskChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-card p-5">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-semibold text-lg">最近警报</h3>
+                            <button class="text-primary flex items-center gap-1 text-sm">
+                                查看全部 <i class="fa-solid fa-angle-right"></i>
+                            </button>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="alert-item alert-item-danger">
+                                <div class="flex">
+                                    <div class="alert-icon alert-icon-danger">
+                                        <i class="fa-solid fa-exclamation-triangle"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="flex items-center justify-between">
+                                            <h4 class="font-medium">市场波动警告</h4>
+                                            <span class="text-xs text-gray-500">2小时前</span>
+                                        </div>
+                                        <p class="text-sm text-gray-600 mt-1">近期市场波动加剧，建议调整投资组合以降低风险。</p>
+                                        <div class="flex gap-2 mt-2">
+                                            <button class="text-xs px-3 py-1 bg-danger/10 text-danger rounded-full">
+                                                查看详情
+                                            </button>
+                                            <button class="text-xs px-3 py-1 bg-gray-100 text-gray-600 rounded-full">
+                                                忽略
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="alert-item alert-item-warning">
+                                <div class="flex">
+                                    <div class="alert-icon alert-icon-warning">
+                                        <i class="fa-solid fa-bell"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="flex items-center justify-between">
+                                            <h4 class="font-medium">资产配置提醒</h4>
+                                            <span class="text-xs text-gray-500">昨天</span>
+                                        </div>
+                                        <p class="text-sm text-gray-600 mt-1">您的投资组合风险评级已从"中等"变为"偏高"，建议重新平衡。</p>
+                                        <div class="flex gap-2 mt-2">
+                                            <button class="text-xs px-3 py-1 bg-warning/10 text-warning rounded-full">
+                                                查看详情
+                                            </button>
+                                            <button class="text-xs px-3 py-1 bg-gray-100 text-gray-600 rounded-full">
+                                                忽略
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="alert-item alert-item-info">
+                                <div class="flex">
+                                    <div class="alert-icon alert-icon-info">
+                                        <i class="fa-solid fa-info-circle"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="flex items-center justify-between">
+                                            <h4 class="font-medium">投资机会提示</h4>
+                                            <span class="text-xs text-gray-500">3天前</span>
+                                        </div>
+                                        <p class="text-sm text-gray-600 mt-1">根据您的风险偏好，发现几个潜在的投资机会，建议查看。</p>
+                                        <div class="flex gap-2 mt-2">
+                                            <button class="text-xs px-3 py-1 bg-primary/10 text-primary rounded-full">
+                                                查看详情
+                                            </button>
+                                            <button class="text-xs px-3 py-1 bg-gray-100 text-gray-600 rounded-full">
+                                                忽略
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="alert-item alert-item-warning">
+                                <div class="flex">
+                                    <div class="alert-icon alert-icon-warning">
+                                        <i class="fa-solid fa-exclamation-circle"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="flex items-center justify-between">
+                                            <h4 class="font-medium">资产止损提醒</h4>
+                                            <span class="text-xs text-gray-500">5天前</span>
+                                        </div>
+                                        <p class="text-sm text-gray-600 mt-1">您持有的特斯拉股票已下跌超过10%，触发止损提醒。</p>
+                                        <div class="flex gap-2 mt-2">
+                                            <button class="text-xs px-3 py-1 bg-warning/10 text-warning rounded-full">
+                                                查看详情
+                                            </button>
+                                            <button class="text-xs px-3 py-1 bg-gray-100 text-gray-600 rounded-full">
+                                                忽略
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="alert-item alert-item-info">
+                                <div class="flex">
+                                    <div class="alert-icon alert-icon-info">
+                                        <i class="fa-solid fa-bullhorn"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="flex items-center justify-between">
+                                            <h4 class="font-medium">政策变化通知</h4>
+                                            <span class="text-xs text-gray-500">1周前</span>
+                                        </div>
+                                        <p class="text-sm text-gray-600 mt-1">央行近期货币政策调整，可能影响市场流动性，请注意风险。</p>
+                                        <div class="flex gap-2 mt-2">
+                                            <button class="text-xs px-3 py-1 bg-primary/10 text-primary rounded-full">
+                                                查看详情
+                                            </button>
+                                            <button class="text-xs px-3 py-1 bg-gray-100 text-gray-600 rounded-full">
+                                                忽略
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="bg-white rounded-xl shadow-card p-5 mb-6">
+                        <h3 class="font-semibold text-lg mb-4">风险设置</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">风险承受能力</label>
+                                <div class="flex items-center gap-2">
+                                    <input type="range" min="1" max="5" value="3" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary" id="riskTolerance">
+                                    <span class="text-sm font-medium" id="riskToleranceValue">中等</span>
+                                </div>
+                                <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                    <span>保守</span>
+                                    <span>平衡</span>
+                                    <span>激进</span>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">波动警报阈值</label>
+                                <div class="flex items-center gap-2">
+                                    <input type="range" min="1" max="10" value="5" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary" id="volatilityThreshold">
+                                    <span class="text-sm font-medium" id="volatilityThresholdValue">5%</span>
+                                </div>
+                                <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                    <span>低</span>
+                                    <span>中</span>
+                                    <span>高</span>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">警报通知方式</label>
+                                <div class="space-y-2">
+                                    <label class="flex items-center gap-2 p-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                                        <input type="checkbox" checked class="accent-primary">
+                                        <span>APP推送通知</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 p-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                                        <input type="checkbox" checked class="accent-primary">
+                                        <span>短信通知</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 p-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                                        <input type="checkbox" class="accent-primary">
+                                        <span>邮件通知</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">警报类型</label>
+                                <div class="space-y-2">
+                                    <label class="flex items-center gap-2 p-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                                        <input type="checkbox" checked class="accent-primary">
+                                        <span>市场波动警报</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 p-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                                        <input type="checkbox" checked class="accent-primary">
+                                        <span>资产配置警报</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 p-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                                        <input type="checkbox" checked class="accent-primary">
+                                        <span>止损/止盈警报</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 p-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                                        <input type="checkbox" checked class="accent-primary">
+                                        <span>政策变化警报</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <button class="btn-primary w-full">
+                                保存设置
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-card p-5">
+                        <h3 class="font-semibold text-lg mb-4">风险评估报告</h3>
+                        <div class="space-y-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-12 h-12 bg-warning/10 rounded-lg flex items-center justify-center text-warning">
+                                    <i class="fa-solid fa-chart-line text-xl"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium">综合风险评估</h4>
+                                    <p class="text-sm text-gray-500">最近更新: 2025-05-10</p>
+                                </div>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-3">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-sm text-gray-600">风险评级</span>
+                                    <span class="font-medium">中等偏高</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2">
+                                    <div class="bg-warning h-2 rounded-full" style="width: 68%"></div>
+                                </div>
+                                <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                    <span>低</span>
+                                    <span>中</span>
+                                    <span>高</span>
+                                </div>
+                            </div>
+                            <p class="text-sm text-gray-600">您的投资组合风险评级为中等偏高，建议适当增加低风险资产配置以平衡风险。</p>
+                            <button class="btn-outline w-full text-sm">
+                                查看完整报告
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        async function loadRiskAnalysis() {
+            const portfolio = {
+                stocks: [
+                    { code: 'AAPL', weight: 0.3 },
+                    { code: 'GOOGL', weight: 0.2 },
+                    { code: 'MSFT', weight: 0.5 }
+                ],
+                total_value: 1000000,
+                risk_preference: 'moderate'
+            };
+    
+            try {
+                const response = await fetch('/api/risk/portfolio/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ portfolio })
+                });
+    
+                const data = await response.json();
+                if (data.status === 'success') {
+                    updateRiskChart(data.data);
+                    updateRiskIndicators(data.data);
+                } else {
+                    console.error('加载风险分析失败：', data.message);
+                }
+            } catch (error) {
+                console.error('请求失败：', error);
+            }
+        }
+    
+        async function loadMarketAlerts() {
+            try {
+                const response = await fetch('/api/risk/market/');
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    const alertsContainer = document.getElementById('alertsContainer');
+                    alertsContainer.innerHTML = '';
+                    
+                    data.data.forEach(alert => {
+                        const alertElement = createAlertElement(alert);
+                        alertsContainer.appendChild(alertElement);
+                    });
+                }
+            } catch (error) {
+                console.error('加载市场警报失败：', error);
+            }
+        }
+    
+        function createAlertElement(alert) {
+            const div = document.createElement('div');
+            div.className = `alert-item alert-item-${alert.risk_level.toLowerCase()}`;
+            div.innerHTML = `
+                <div class="flex">
+                    <div class="alert-icon alert-icon-${alert.risk_level.toLowerCase()}">
+                        <i class="fa-solid fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between">
+                            <h4 class="font-medium">${alert.title}</h4>
+                            <span class="text-xs text-gray-500">${alert.time}</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-1">${alert.description}</p>
+                        <div class="flex gap-2 mt-2">
+                            <button class="text-xs px-3 py-1 bg-primary/10 text-primary rounded-full">
+                                查看详情
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            return div;
+        }
+    
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            loadRiskAnalysis();
+            loadMarketAlerts();
+            
+            // 设置定时刷新
+            setInterval(loadMarketAlerts, 5 * 60 * 1000);  // 每5分钟刷新一次
+        });
+    </script>
+</body>
+</html>

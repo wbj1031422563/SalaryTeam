@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注册</title>
+    <link rel="stylesheet" href="/static/css/auth.css">
+</head>
+<body>
+    <div class="container">
+        <div class="form-box">
+            <h2>用户注册</h2>
+            <form method="post" action="/api/users/">
+                {% csrf_token %}
+                <div class="input-group">
+                    <input type="text" name="username" required placeholder="用户名">
+                </div>
+                <div class="input-group">
+                    <input type="email" name="email" required placeholder="电子邮箱">
+                </div>
+                <div class="input-group">
+                    <input type="password" name="password" required placeholder="密码">
+                </div>
+                <div class="input-group">
+                    <input type="text" name="phone" required placeholder="手机号码">
+                </div>
+                <button type="submit" class="submit-btn">注册</button>
+                <p class="switch-link">已有账号？<a href="/login">立即登录</a></p>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
+<script>
+document.querySelector('form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    fetch('/api/users/', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.redirect_url) {
+            window.location.href = data.redirect_url;
+        } else if (data.error) {
+            alert(data.error);
+        }
+    })
+    .catch(error => {
+        alert('注册失败，请重试');
+    });
+});
+</script>

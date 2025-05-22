@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>金融数据平台 - 投资建议</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36BFFA',
+                        success: '#00B42A',
+                        warning: '#FF7D00',
+                        danger: '#F53F3F',
+                        dark: '#1D2129',
+                        'gray-100': '#F2F3F5',
+                        'gray-200': '#E5E6EB',
+                        'gray-300': '#C9CDD4',
+                        'gray-400': '#86909C',
+                        'gray-500': '#4E5969',
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'card': '0 4px 20px rgba(0, 0, 0, 0.08)',
+                        'card-hover': '0 8px 30px rgba(0, 0, 0, 0.12)',
+                    }
+                },
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .menu-active {
+                @apply bg-primary/10 text-primary border-r-4 border-primary;
+            }
+            .card-transition {
+                @apply transition-all duration-300 ease-in-out;
+            }
+            .nav-item {
+                @apply flex items-center gap-3 px-4 py-3 text-gray-500 hover:bg-primary/5 hover:text-primary card-transition;
+            }
+            .btn-primary {
+                @apply bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg transition-all duration-300;
+            }
+            .btn-outline {
+                @apply border border-gray-300 hover:border-primary hover:text-primary px-4 py-2 rounded-lg transition-all duration-300;
+            }
+            .investment-card {
+                @apply bg-white rounded-xl p-5 shadow-card hover:shadow-card-hover card-transition border border-transparent hover:border-primary/20 cursor-pointer;
+            }
+            .recommendation-tag {
+                @apply text-xs px-2 py-1 rounded-full font-medium inline-block;
+            }
+            .recommendation-strong-buy {
+                @apply bg-success/10 text-success;
+            }
+            .recommendation-buy {
+                @apply bg-primary/10 text-primary;
+            }
+            .recommendation-hold {
+                @apply bg-gray-100 text-gray-600;
+            }
+        }
+    </style>
+</head>
+<body class="font-inter bg-gray-100 text-dark min-h-screen flex flex-col">
+    <!-- 顶部导航栏 -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-line-chart text-primary text-2xl"></i>
+                <h1 class="text-xl font-bold text-dark hidden sm:block">金融数据平台</h1>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="relative hidden sm:block">
+                    <input type="text" placeholder="搜索..." class="pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
+                    <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                </div>
+                <button class="relative text-gray-500 hover:text-primary transition-colors">
+                    <i class="fa-solid fa-bell text-xl"></i>
+                    <span class="absolute -top-1 -right-1 bg-danger text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">3</span>
+                </button>
+                <div class="flex items-center gap-2">
+                    <img src="https://picsum.photos/id/1005/200/200" alt="用户头像" class="w-8 h-8 rounded-full object-cover border-2 border-primary/20">
+                    <span class="hidden sm:block">张三</span>
+                    <i class="fa-solid fa-angle-down text-gray-400"></i>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden">
+        <!-- 左侧菜单栏 -->
+        <aside class="w-16 sm:w-64 bg-white shadow-sm h-[calc(100vh-64px)] sticky top-[64px] transition-all duration-300">
+            <nav class="py-4 h-full flex flex-col">
+                <div class="flex flex-col">
+                    <a href="{% url 'account' %}" class="nav-item ">
+                        <i class="fa-solid fa-user-circle text-xl"></i>
+                        <span class="hidden sm:block">账号管理</span>
+                    </a>
+                    <a href="{% url 'service' %}" class="nav-item">
+                        <i class="fa-solid fa-headphones text-xl"></i>
+                        <span class="hidden sm:block">智能客服</span>
+                    </a>
+                    <a href="{% url 'alert' %}" class="nav-item">
+                        <i class="fa-solid fa-exclamation-triangle text-xl"></i>
+                        <span class="hidden sm:block">风险警报</span>
+                    </a>
+                    <a href="{% url 'advice' %}" class="nav-item menu-active">
+                        <i class="fa-solid fa-lightbulb text-xl"></i>
+                        <span class="hidden sm:block">投资建议</span>
+                    </a>
+                    <a href="{% url 'query' %}" class="nav-item">
+                        <i class="fa-solid fa-search text-xl"></i>
+                        <span class="hidden sm:block">数据查询</span>
+                    </a>
+                    <a href="{% url 'predict' %}" class="nav-item">
+                        <i class="fa-solid fa-crystal-ball text-xl"></i>
+                        <span class="hidden sm:block">数据预测</span>
+                    </a>
+                </div>
+                
+                <div class="mt-auto pt-4 border-t border-gray-200">
+                    <a href="#settings" class="nav-item">
+                        <i class="fa-solid fa-cog text-xl"></i>
+                        <span class="hidden sm:block">设置</span>
+                    </a>
+                    <a href="#help" class="nav-item">
+                        <i class="fa-solid fa-question-circle text-xl"></i>
+                        <span class="hidden sm:block">帮助中心</span>
+                    </a>
+                    <a href="#logout" class="nav-item">
+                        <i class="fa-solid fa-sign-out-alt text-xl"></i>
+                        <span class="hidden sm:block">退出登录</span>
+                    </a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="flex-1 overflow-y-auto p-4 sm:p-6">
+            <div class="mb-6">
+                <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-dark">投资建议</h2>
+                <p class="text-gray-500">基于您的风险偏好和投资目标的个性化建议</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2">
+                    <div class="bg-white rounded-xl shadow-card p-5 mb-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-semibold text-lg">投资组合分析</h3>
+                            <div class="flex gap-2">
+                                <button class="btn-outline text-sm">当前</button>
+                                <button class="btn-primary text-sm">建议</button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <h4 class="text-sm font-medium text-gray-500 mb-3">当前资产分布</h4>
+                                <div class="h-[250px]">
+                                    <canvas id="currentPortfolioChart"></canvas>
+                                </div>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-medium text-gray-500 mb-3">建议资产分布</h4>
+                                <div class="h-[250px]">
+                                    <canvas id="recommendedPortfolioChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-card p-5 mb-6">
+                        <h3 class="font-semibold text-lg mb-4">投资建议摘要</h3>
+                        <div class="space-y-4">
+                            <div class="p-4 bg-primary/5 rounded-lg border border-primary/20">
+                                <div class="flex items-start gap-3">
+                                    <div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary">
+                                        <i class="fa-solid fa-chart-pie"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium">资产配置优化</h4>
+                                        <p class="text-sm text-gray-600 mt-1">根据您的风险偏好，建议增加债券和现金比例，减少股票投资，以降低整体风险。</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="p-4 bg-success/5 rounded-lg border border-success/20">
+                                <div class="flex items-start gap-3">
+                                    <div class="w-10 h-10 bg-success/10 rounded-full flex items-center justify-center text-success">
+                                        <i class="fa-solid fa-lightbulb"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium">投资机会</h4>
+                                        <p class="text-sm text-gray-600 mt-1">考虑增加对医疗保健和科技板块的投资，这些领域具有长期增长潜力。</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="p-4 bg-warning/5 rounded-lg border border-warning/20">
+                                <div class="flex items-start gap-3">
+                                    <div class="w-10 h-10 bg-warning/10 rounded-full flex items-center justify-center text-warning">
+                                        <i class="fa-solid fa-exclamation-triangle"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium">风险警示</h4>
+                                        <p class="text-sm text-gray-600 mt-1">当前您的投资组合集中度过高，建议增加资产种类，实现更广泛的分散投资。</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-card p-5">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-semibold text-lg">推荐投资产品</h3>
+                            <div class="flex gap-2">
+                                <select class="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <option>全部类别</option>
+                                    <option>股票</option>
+                                    <option>基金</option>
+                                    <option>债券</option>
+                                    <option>ETF</option>
+                                </select>
+                                <select class="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <option>所有风险等级</option>
+                                    <option>低风险</option>
+                                    <option>中风险</option>
+                                    <option>高风险</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="investment-card">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <div class="flex items-center gap-2 mb-1">
+                                            <div class="w-8 h-8 bg-blue-100 rounded-md flex items-center justify-center">
+                                                <i class="fa-brands fa-apple text-blue-600"></i>
+                                            </div>
+                                            <h4 class="font-medium">苹果公司</h4>
+                                        </div>
+                                        <p class="text-sm text-gray-500">科技 • 美国</p>
+                                    </div>
+                                    <span class="recommendation-tag recommendation-strong-buy">强力买入</span>
+                                </div>
+                                <div class="mt-3 flex items-center justify-between">
+                                    <div>
+                                        <p class="text-2xl font-bold">¥172.45</p>
+                                        <p class="text-sm text-success flex items-center gap-1">
+                                            <i class="fa-solid fa-arrow-up"></i> 2.4%
+                                        </p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-sm text-gray-500">目标价</p>
+                                        <p class="font-medium">¥200.00</p>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <div class="flex justify-between text-sm text-gray-500 mb-1">
+                                        <span>52周范围</span>
+                                        <span>¥128.32 - ¥182.97</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-1.5">
+                                        <div class="bg-primary h-1.5 rounded-full" style="width: 75%"></div>
+                                    </div>
+                                </div>
+                                <div class="mt-4 flex gap-2">
+                                    <button class="btn-primary text-sm flex-1">
+                                        查看详情
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="investment-card">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <div class="flex items-center gap-2 mb-1">
+                                            <div class="w-8 h-8 bg-green-100 rounded-md flex items-center justify-center">
+                                                <i class="fa-solid fa-heartbeat text-green-600"></i>
+                                            </div>
+                                            <h4 class="font-medium">医疗科技ETF</h4>
+                                        </div>
+                                        <p class="text-sm text-gray-500">ETF • 医疗保健</p>
+                                    </div>
+                                    <span class="recommendation-tag recommendation-buy">买入</span>
+                                </div>
+                                <div class="mt-3 flex items-center justify-between">
+                                    <div>
+                                        <p class="text-2xl font-bold">¥58.72</p>
+                                        <p class="text-sm text-success flex items-center gap-1">
+                                            <i class="fa-solid fa-arrow-up"></i> 1.8%
+                                        </p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-sm text-gray-500">目标价</p>
+                                        <p class="font-medium">¥65.00</p>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <div class="flex justify-between text-sm text-gray-500 mb-1">
+                                        <span>52周范围</span>
+                                        <span>¥45.32 - ¥62.45</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-1.5">
+                                        <div class="bg-primary h-1.5 rounded-full" style="width: 85%"></div>
+                                    </div>
+                                </div>
+                                <div class="mt-4 flex gap-2">
+                                    <button class="btn-primary text-sm flex-1">
+                                        查看详情
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="investment-card">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <div class="flex items-center gap-2 mb-1">
+                                            <div class="w-8 h-8 bg-purple-100 rounded-md flex items-center justify-center">
+                                                <i class="fa-solid fa-building text-purple-600"></i>
+                                            </div>
+                                            <h4 class="font-medium">全球债券基金</h4>
+                                        </div>
+                                        <p class="text-sm text-gray-500">基金 • 固定收益</p>
+                                    </div>
+                                    <span class="recommendation-tag recommendation-buy">买入</span>
+                                </div>
+                                <div class="mt-3 flex items-center justify-between">
+                                    <div>
+                                        <p class="text-2xl font-bold">¥12.45</p>
+                                        <p class="text-sm text-success flex items-center gap-1">
+                                            <i class="fa-solid fa-arrow-up"></i> 0.7%
+                                        </p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-sm text-gray-500">目标价</p>
+                                        <p class="font-medium">¥13.20</p>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <div class="flex justify-between text-sm text-gray-500 mb-1">
+                                        <span>52周范围</span>
+                                        <span>¥11.82 - ¥12.75</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-1.5">
+                                        <div class="bg-primary h-1.5 rounded-full" style="width: 65%"></div>
+                                    </div>
+                                </div>
+                                <div class="mt-4 flex gap-2">
+                                    <button class="btn-primary text-sm flex-1">
+                                        查看详情
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="investment-card">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <div class="flex items-center gap-2 mb-1">
+                                            <div class="w-8 h-8 bg-yellow-100 rounded-md flex items-center justify-center">
+                                                <i class="fa-solid fa-industry text-yellow-600"></i>
+                                            </div>
+                                            <h4 class="font-medium">工业精选股票</h4>
+                                        </div>
+                                        <p class="text-sm text-gray-500">股票 • 工业</p>
+                                    </div>
+                                    <span class="recommendation-tag recommendation-hold">持有</span>
+                                </div>
+                                <div class="mt-3 flex items-center justify-between">
+                                    <div>
+                                        <p class="text-2xl font-bold">¥45.89</p>
+                                        <p class="text-sm text-danger flex items-center gap-1">
+                                            <i class="fa-solid fa-arrow-down"></i> 0.5%
+                                        </p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-sm text-gray-500">目标价</p>
+                                        <p class="font-medium">¥50.00</p>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <div class="flex justify-between text-sm text-gray-500 mb-1">
+                                        <span>52周范围</span>
+                                        <span>¥38.21 - ¥52.47</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-1.5">
+                                        <div class="bg-primary h-1.5 rounded-full" style="width: 60%"></div>
+                                    </div>
+                                </div>
+                                <div class="mt-4 flex gap-2">
+                                    <button class="btn-primary text-sm flex-1">
+                                        查看详情
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-4 text-center">
+                            <button class="btn-outline">
+                                查看更多推荐 <i class="fa-solid fa-angle-right ml-1"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="bg-white rounded-xl shadow-card p-5 mb-6">
+                        <h3 class="font-semibold text-lg mb-4">您的投资档案</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-sm text-gray-600">风险承受能力</span>
+                                    <span class="font-medium">中等偏高</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2">
+                                    <div class="bg-warning h-2 rounded-full" style="width: 68%"></div>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-sm text-gray-600">投资目标</span>
+                                    <span class="font-medium">长期增长</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2">
+                                    <div class="bg-primary h-2 rounded-full" style="width: 80%"></div>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-sm text-gray-600">投资期限</span>
+                                    <span class="font-medium">5年以上</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2">
+                                    <div class="bg-success h-2 rounded-full" style="width: 90%"></div>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-sm text-gray-600">流动性需求</span>
+                                    <span class="font-medium">低</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2">
+                                    <div class="bg-danger h-2 rounded-full" style="width: 30%"></div>
+                                </div>
+                            </div>
+                            
+                            <button class="btn-outline w-full">
+                                编辑投资档案
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-card p-5 mb-6">
+                        <h3 class="font-semibold text-lg mb-4">市场热点</h3>
+                        <div class="space-y-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
+                                    <i class="fa-solid fa-microchip text-xl"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium">半导体行业</h4>
+                                    <p class="text-sm text-gray-500">全球芯片短缺持续，半导体公司业绩增长强劲</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center gap-3">
+                                <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center text-green-600">
+                                    <i class="fa-solid fa-leaf text-xl"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium">可再生能源</h4>
+                                    <p class="text-sm text-gray-500">政策支持力度加大，新能源股表现亮眼</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center gap-3">
+                                <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center text-yellow-600">
+                                    <i class="fa-solid fa-shopping-bag text-xl"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium">消费复苏</h4>
+                                    <p class="text-sm text-gray-500">疫情后消费需求反弹，零售和旅游板块回暖</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center gap-3">
+                                <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center text-purple-600">
+                                    <i class="fa-solid fa-vr-cardboard text-xl"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium">元宇宙概念</h4>
+                                    <p class="text-sm text-gray-500">科技巨头布局元宇宙，相关概念股受关注</p>
+                                </div>
+                            </div>
+                            
+                            <button class="btn-outline w-full text-sm">
+                                查看全部市场热点
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-card p-5">
+                        <h3 class="font-semibold text-lg mb-4">联系投资顾问</h3>
+                        <div class="space-y-4">
+                            <div class="flex items-center gap-3">
+                                <img src="https://picsum.photos/id/1000/200/200" alt="投资顾问" class="w-12 h-12 rounded-full object-cover">
+                                <div>
+                                    <h4 class="font-medium">李志强</h4>
+                                    <p class="text-sm text-gray-500">资深投资顾问</p>
+                                </div>
+                            </div>
+                            
+                            <p class="text-sm text-gray-600">拥有10年金融行业经验，专注于资产配置和投资组合管理。</p>
+                            
+                            <div class="flex gap-2">
+                                <button class="btn-primary flex-1">
+                                    <i class="fa-solid fa-comments mr-1"></i> 在线咨询
+                                </button>
+                                <button class="btn-outline">
+                                    <i class="fa-solid fa-phone mr-1"></i> 电话联系
+                                </button>
+                            </div>
+                            
+                            <div class="border-t border-gray-200 pt-4">
+                                <h4 class="font-medium mb-2">预约投资咨询</h4>
+                                <div class="grid grid-cols-2 gap-2 mb-3">
+                                    <select class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                        <option>今天</option>
+                                        <option>明天</option>
+                                        <option>后天</option>
+                                        <option>本周五</option>
+                                    </select>
+                                    <select class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                        <option>10:00</option>
+                                        <option>11:00</option>
+                                        <option>14:00</option>
+                                        <option>15:00</option>
+                                    </select>
+                                </div>
+                                <button class="btn-primary w-full">
+                                    预约咨询
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // 初始化图表
+        function initializeCharts() {
+            // 当前资产分布图表
+            const currentCtx = document.getElementById('currentPortfolioChart').getContext('2d');
+            new Chart(currentCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['股票', '债券', '现金', '其他'],
+                    datasets: [{
+                        data: [40, 30, 20, 10],
+                        backgroundColor: ['#165DFF', '#00B42A', '#86909C', '#F53F3F']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        
+            // 建议资产分布图表
+            const recommendedCtx = document.getElementById('recommendedPortfolioChart').getContext('2d');
+            new Chart(recommendedCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['股票', '债券', '现金', '其他'],
+                    datasets: [{
+                        data: [30, 40, 25, 5],
+                        backgroundColor: ['#165DFF', '#00B42A', '#86909C', '#F53F3F']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+    
+        // 更新投资组合分析
+        async function updatePortfolioAnalysis() {
+            const portfolio = {
+                stocks: 40,
+                bonds: 30,
+                cash: 20,
+                others: 10
+            };
+    
+            try {
+                const response = await fetch('/api/advice/portfolio/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        portfolio: portfolio,
+                        risk_preference: '稳健'
+                    })
+                });
+    
+                const data = await response.json();
+                if (data.status === 'success') {
+                    updateAdviceSummary(data.data);
+                    updatePortfolioCharts(data.data);
+                }
+            } catch (error) {
+                console.error('更新投资组合分析失败：', error);
+            }
+        }
+    
+        // 更新建议摘要
+        function updateAdviceSummary(data) {
+            const summaryContainer = document.getElementById('adviceSummary');
+            summaryContainer.innerHTML = `
+                <div class="space-y-4">
+                    ${data.adjustments.map(adjustment => `
+                        <div class="p-4 bg-${adjustment.type}/5 rounded-lg border border-${adjustment.type}/20">
+                            <div class="flex items-start gap-3">
+                                <div class="w-10 h-10 bg-${adjustment.type}/10 rounded-full flex items-center justify-center text-${adjustment.type}">
+                                    <i class="fa-solid ${adjustment.icon}"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium">${adjustment.title}</h4>
+                                    <p class="text-sm text-gray-600 mt-1">${adjustment.description}</p>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+    
+        // 更新股票推荐
+        async function updateStockRecommendations() {
+            try {
+                const response = await fetch('/api/advice/stocks/?industry=all&market_cap=large&risk_level=medium');
+                const data = await response.json();
+    
+                if (data.status === 'success') {
+                    const container = document.getElementById('stockRecommendations');
+                    container.innerHTML = data.data.stocks.map(stock => `
+                        <div class="investment-card">
+                            <div class="flex items-center justify-between mb-2">
+                                <h4 class="font-medium">${stock.name} (${stock.code})</h4>
+                                <span class="recommendation-tag recommendation-${stock.recommendation.toLowerCase()}">
+                                    ${stock.recommendation}
+                                </span>
+                            </div>
+                            <p class="text-sm text-gray-600 mb-3">${stock.industry}</p>
+                            <div class="flex items-center justify-between text-sm">
+                                <span class="text-gray-500">目标价: ${stock.target_price}</span>
+                                <span class="${stock.change >= 0 ? 'text-success' : 'text-danger'}">
+                                    ${stock.change >= 0 ? '+' : ''}${stock.change}%
+                                </span>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('更新股票推荐失败：', error);
+            }
+        }
+    
+        // 添加交互动画
+        function addInteractiveEffects() {
+            // 投资卡片悬停效果
+            document.querySelectorAll('.investment-card').forEach(card => {
+                card.addEventListener('mouseenter', () => {
+                    card.style.transform = 'translateY(-5px)';
+                });
+                card.addEventListener('mouseleave', () => {
+                    card.style.transform = 'translateY(0)';
+                });
+            });
+    
+            // 按钮点击波纹效果
+            document.querySelectorAll('.btn-primary, .btn-outline').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    const ripple = document.createElement('div');
+                    ripple.classList.add('ripple');
+                    this.appendChild(ripple);
+                    
+                    const rect = this.getBoundingClientRect();
+                    ripple.style.left = `${e.clientX - rect.left}px`;
+                    ripple.style.top = `${e.clientY - rect.top}px`;
+                    
+                    setTimeout(() => ripple.remove(), 1000);
+                });
+            });
+        }
+    
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeCharts();
+            updatePortfolioAnalysis();
+            updateStockRecommendations();
+            addInteractiveEffects();
+            
+            // 添加事件监听器
+            document.querySelector('.btn-primary').addEventListener('click', updatePortfolioAnalysis);
+            document.querySelector('.btn-outline').addEventListener('click', updateStockRecommendations);
+        });
+    </script>
+</body>
+</html>
+
+<script>
+async function getInvestmentAdvice() {
+    const currentPortfolio = {
+        stocks: 60,  // 当前股票占比
+        bonds: 30,   // 当前债券占比
+        cash: 10     // 当前现金占比
+    };
+    
+    const userProfile = {
+        risk_tolerance: "中等",
+        investment_goal: "稳健增长",
+        investment_horizon: "3-5年"
+    };
+    
+    try {
+        const response = await fetch('/api/investment/advice/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: new URLSearchParams({
+                'current_portfolio': JSON.stringify(currentPortfolio),
+                'user_profile': JSON.stringify(userProfile)
+            })
+        });
+        
+        const data = await response.json();
+        if (data.status === 'success') {
+            updatePortfolioCharts(data.data);
+            updateAdviceSummary(data.data);
+        } else {
+            alert('获取投资建议失败：' + data.message);
+        }
+    } catch (error) {
+        console.error('请求失败：', error);
+        alert('获取投资建议失败，请稍后重试');
+    }
+}
+
+// 页面加载完成后自动获取投资建议
+document.addEventListener('DOMContentLoaded', getInvestmentAdvice);
+</script>

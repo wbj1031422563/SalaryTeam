@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>金融数据平台 - 账号管理</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36BFFA',
+                        success: '#00B42A',
+                        warning: '#FF7D00',
+                        danger: '#F53F3F',
+                        dark: '#1D2129',
+                        'gray-100': '#F2F3F5',
+                        'gray-200': '#E5E6EB',
+                        'gray-300': '#C9CDD4',
+                        'gray-400': '#86909C',
+                        'gray-500': '#4E5969',
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'card': '0 4px 20px rgba(0, 0, 0, 0.08)',
+                        'card-hover': '0 8px 30px rgba(0, 0, 0, 0.12)',
+                    }
+                },
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .menu-active {
+                @apply bg-primary/10 text-primary border-r-4 border-primary;
+            }
+            .card-transition {
+                @apply transition-all duration-300 ease-in-out;
+            }
+            .nav-item {
+                @apply flex items-center gap-3 px-4 py-3 text-gray-500 hover:bg-primary/5 hover:text-primary card-transition;
+            }
+            .btn-primary {
+                @apply bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg transition-all duration-300;
+            }
+            .btn-outline {
+                @apply border border-gray-300 hover:border-primary hover:text-primary px-4 py-2 rounded-lg transition-all duration-300;
+            }
+            .stats-card {
+                @apply bg-white rounded-xl p-5 shadow-card hover:shadow-card-hover card-transition;
+            }
+            .chart-container {
+                @apply bg-white rounded-xl p-5 shadow-card mb-6;
+            }
+        }
+    </style>
+</head>
+<body class="font-inter bg-gray-100 text-dark min-h-screen flex flex-col">
+    <!-- 顶部导航栏 -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-line-chart text-primary text-2xl"></i>
+                <h1 class="text-xl font-bold text-dark hidden sm:block">金融数据平台</h1>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="relative hidden sm:block">
+                    <input type="text" placeholder="搜索..." class="pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
+                    <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                </div>
+                <button class="relative text-gray-500 hover:text-primary transition-colors">
+                    <i class="fa-solid fa-bell text-xl"></i>
+                    <span class="absolute -top-1 -right-1 bg-danger text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">3</span>
+                </button>
+                <div class="flex items-center gap-2">
+                    <img src="https://picsum.photos/id/1005/200/200" alt="用户头像" class="w-8 h-8 rounded-full object-cover border-2 border-primary/20">
+                    <span class="hidden sm:block">张三</span>
+                    <i class="fa-solid fa-angle-down text-gray-400"></i>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden">
+        <!-- 左侧菜单栏 -->
+        <aside class="w-16 sm:w-64 bg-white shadow-sm h-[calc(100vh-64px)] sticky top-[64px] transition-all duration-300">
+            <!-- 在导航菜单中添加智能客服链接 -->
+            <nav class="py-4 h-full flex flex-col">
+                <div class="flex flex-col">
+                    <a href="{% url 'account' %}" class="nav-item menu-active">
+                        <i class="fa-solid fa-user-circle text-xl"></i>
+                        <span class="hidden sm:block">账号管理</span>
+                    </a>
+                    <a href="{% url 'service' %}" class="nav-item">
+                        <i class="fa-solid fa-headphones text-xl"></i>
+                        <span class="hidden sm:block">智能客服</span>
+                    </a>
+                    <a href="{% url 'alert' %}" class="nav-item">
+                        <i class="fa-solid fa-exclamation-triangle text-xl"></i>
+                        <span class="hidden sm:block">风险警报</span>
+                    </a>
+                    <a href="{% url 'advice' %}" class="nav-item">
+                        <i class="fa-solid fa-lightbulb text-xl"></i>
+                        <span class="hidden sm:block">投资建议</span>
+                    </a>
+                    <a href="{% url 'query' %}" class="nav-item">
+                        <i class="fa-solid fa-search text-xl"></i>
+                        <span class="hidden sm:block">数据查询</span>
+                    </a>
+                    <a href="{% url 'predict' %}" class="nav-item">
+                        <i class="fa-solid fa-crystal-ball text-xl"></i>
+                        <span class="hidden sm:block">数据预测</span>
+                    </a>
+                </div>
+                
+                <div class="mt-auto pt-4 border-t border-gray-200">
+                    <a href="#settings" class="nav-item">
+                        <i class="fa-solid fa-cog text-xl"></i>
+                        <span class="hidden sm:block">设置</span>
+                    </a>
+                    <a href="#help" class="nav-item">
+                        <i class="fa-solid fa-question-circle text-xl"></i>
+                        <span class="hidden sm:block">帮助中心</span>
+                    </a>
+                    <a href="#logout" class="nav-item">
+                        <i class="fa-solid fa-sign-out-alt text-xl"></i>
+                        <span class="hidden sm:block">退出登录</span>
+                    </a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="flex-1 overflow-y-auto p-4 sm:p-6">
+            <div class="mb-6">
+                <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-dark">账号管理</h2>
+                <p class="text-gray-500">管理您的账户信息和安全设置</p>
+            </div>
+
+            <!-- 数据概览卡片 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                <div class="stats-card">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-gray-500 font-medium">总资产</h3>
+                        <span class="text-success flex items-center gap-1">
+                            <i class="fa-solid fa-arrow-up"></i> 5.2%
+                        </span>
+                    </div>
+                    <div class="flex items-end justify-between">
+                        <p class="text-3xl font-bold">¥1,258,900</p>
+                        <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+                            <i class="fa-solid fa-wallet text-primary text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stats-card">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-gray-500 font-medium">本月收益</h3>
+                        <span class="text-danger flex items-center gap-1">
+                            <i class="fa-solid fa-arrow-down"></i> 1.8%
+                        </span>
+                    </div>
+                    <div class="flex items-end justify-between">
+                        <p class="text-3xl font-bold">¥12,500</p>
+                        <div class="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center">
+                            <i class="fa-solid fa-chart-line text-success text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stats-card">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-gray-500 font-medium">风险指数</h3>
+                        <span class="text-warning flex items-center gap-1">
+                            <i class="fa-solid fa-exclamation-circle"></i> 中等
+                        </span>
+                    </div>
+                    <div class="flex items-end justify-between">
+                        <p class="text-3xl font-bold">68/100</p>
+                        <div class="w-16 h-16 bg-warning/10 rounded-full flex items-center justify-center">
+                            <i class="fa-solid fa-shield-alt text-warning text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stats-card">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-gray-500 font-medium">投资组合</h3>
+                        <span class="text-primary flex items-center gap-1">
+                            <i class="fa-solid fa-refresh"></i> 已平衡
+                        </span>
+                    </div>
+                    <div class="flex items-end justify-between">
+                        <p class="text-3xl font-bold">5种</p>
+                        <div class="w-16 h-16 bg-secondary/10 rounded-full flex items-center justify-center">
+                            <i class="fa-solid fa-pie-chart text-secondary text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 图表区域 -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                <div class="chart-container lg:col-span-2">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-semibold text-lg">资产趋势</h3>
+                        <div class="flex gap-2">
+                            <button class="btn-outline text-sm">周</button>
+                            <button class="btn-primary text-sm">月</button>
+                            <button class="btn-outline text-sm">年</button>
+                        </div>
+                    </div>
+                    <div class="h-[300px]">
+                        <canvas id="assetsChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-semibold text-lg">资产分布</h3>
+                        <button class="text-primary text-sm flex items-center gap-1">
+                            <i class="fa-solid fa-ellipsis-v"></i>
+                        </button>
+                    </div>
+                    <div class="h-[300px] flex items-center justify-center">
+                        <canvas id="distributionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 最近交易 -->
+            <div class="chart-container">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-semibold text-lg">最近交易</h3>
+                    <button class="text-primary flex items-center gap-1">
+                        查看全部 <i class="fa-solid fa-angle-right"></i>
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full min-w-[640px]">
+                        <thead>
+                            <tr class="border-b border-gray-200">
+                                <th class="text-left py-3 px-4 text-gray-500 font-medium">交易时间</th>
+                                <th class="text-left py-3 px-4 text-gray-500 font-medium">资产</th>
+                                <th class="text-left py-3 px-4 text-gray-500 font-medium">类型</th>
+                                <th class="text-left py-3 px-4 text-gray-500 font-medium">金额</th>
+                                <th class="text-left py-3 px-4 text-gray-500 font-medium">状态</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                                <td class="py-3 px-4 text-gray-500">2025-05-12 14:30</td>
+                                <td class="py-3 px-4">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-8 h-8 bg-blue-100 rounded-md flex items-center justify-center">
+                                            <i class="fa-brands fa-apple text-blue-600"></i>
+                                        </div>
+                                        <span>苹果公司</span>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <span class="bg-green-100 text-green-600 px-2 py-1 rounded-full text-xs">买入</span>
+                                </td>
+                                <td class="py-3 px-4 font-medium">¥25,600</td>
+                                <td class="py-3 px-4">
+                                    <span class="flex items-center gap-1 text-success">
+                                        <i class="fa-solid fa-check-circle"></i> 已完成
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                                <td class="py-3 px-4 text-gray-500">2025-05-11 09:15</td>
+                                <td class="py-3 px-4">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-8 h-8 bg-red-100 rounded-md flex items-center justify-center">
+                                            <i class="fa-solid fa-building text-red-600"></i>
+                                        </div>
+                                        <span>亚马逊</span>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <span class="bg-red-100 text-red-600 px-2 py-1 rounded-full text-xs">卖出</span>
+                                </td>
+                                <td class="py-3 px-4 font-medium">¥38,900</td>
+                                <td class="py-3 px-4">
+                                    <span class="flex items-center gap-1 text-success">
+                                        <i class="fa-solid fa-check-circle"></i> 已完成
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                                <td class="py-3 px-4 text-gray-500">2025-05-10 16:45</td>
+                                <td class="py-3 px-4">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-8 h-8 bg-yellow-100 rounded-md flex items-center justify-center">
+                                            <i class="fa-brands fa-bitcoin text-yellow-600"></i>
+                                        </div>
+                                        <span>比特币</span>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <span class="bg-green-100 text-green-600 px-2 py-1 rounded-full text-xs">买入</span>
+                                </td>
+                                <td class="py-3 px-4 font-medium">¥75,200</td>
+                                <td class="py-3 px-4">
+                                    <span class="flex items-center gap-1 text-warning">
+                                        <i class="fa-solid fa-clock"></i> 处理中
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                                <td class="py-3 px-4 text-gray-500">2025-05-09 11:20</td>
+                                <td class="py-3 px-4">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-8 h-8 bg-purple-100 rounded-md flex items-center justify-center">
+                                            <i class="fa-brands fa-google text-purple-600"></i>
+                                        </div>
+                                        <span>谷歌</span>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <span class="bg-green-100 text-green-600 px-2 py-1 rounded-full text-xs">买入</span>
+                                </td>
+                                <td class="py-3 px-4 font-medium">¥18,750</td>
+                                <td class="py-3 px-4">
+                                    <span class="flex items-center gap-1 text-danger">
+                                        <i class="fa-solid fa-times-circle"></i> 已取消
+                                    </span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化资产趋势图表
+            const assetsCtx = document.getElementById('assetsChart').getContext('2d');
+            new Chart(assetsCtx, {
+                type: 'line',
+                data: {
+                    labels: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
+                    datasets: [{
+                        label: '总资产',
+                        data: [980000, 1020000, 1050000, 1100000, 1150000, 1180000, 1200000, 1220000, 1230000, 1240000, 1250000, 1258900],
+                        borderColor: '#165DFF',
+                        backgroundColor: 'rgba(22, 93, 255, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                            titleColor: '#1D2129',
+                            bodyColor: '#4E5969',
+                            borderColor: '#E5E6EB',
+                            borderWidth: 1,
+                            padding: 10,
+                            boxPadding: 5,
+                            usePointStyle: true,
+                            callbacks: {
+                                label: function(context) {
+                                    return `总资产: ¥${context.raw.toLocaleString()}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            beginAtZero: false,
+                            ticks: {
+                                callback: function(value) {
+                                    return '¥' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 初始化资产分布图表
+            const distributionCtx = document.getElementById('distributionChart').getContext('2d');
+            new Chart(distributionCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['股票', '基金', '债券', '现金', '其他'],
+                    datasets: [{
+                        data: [45, 25, 15, 10, 5],
+                        backgroundColor: [
+                            '#165DFF',
+                            '#36BFFA',
+                            '#00B42A',
+                            '#FF7D00',
+                            '#F53F3F'
+                        ],
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true,
+                                pointStyle: 'circle'
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                            titleColor: '#1D2129',
+                            bodyColor: '#4E5969',
+                            borderColor: '#E5E6EB',
+                            borderWidth: 1,
+                            padding: 10,
+                            boxPadding: 5,
+                            usePointStyle: true,
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.label}: ${context.raw}%`;
+                                }
+                            }
+                        }
+                    },
+                    cutout: '70%'
+                }
+            });
+        });
+    </script>
+</body>
+</html>
