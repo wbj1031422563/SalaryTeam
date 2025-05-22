@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>金融数据平台 - 数据查询</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36BFFA',
+                        success: '#00B42A',
+                        warning: '#FF7D00',
+                        danger: '#F53F3F',
+                        dark: '#1D2129',
+                        'gray-100': '#F2F3F5',
+                        'gray-200': '#E5E6EB',
+                        'gray-300': '#C9CDD4',
+                        'gray-400': '#86909C',
+                        'gray-500': '#4E5969',
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'card': '0 4px 20px rgba(0, 0, 0, 0.08)',
+                        'card-hover': '0 8px 30px rgba(0, 0, 0, 0.12)',
+                    }
+                },
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .menu-active {
+                @apply bg-primary/10 text-primary border-r-4 border-primary;
+            }
+            .card-transition {
+                @apply transition-all duration-300 ease-in-out;
+            }
+            .nav-item {
+                @apply flex items-center gap-3 px-4 py-3 text-gray-500 hover:bg-primary/5 hover:text-primary card-transition;
+            }
+            .btn-primary {
+                @apply bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg transition-all duration-300;
+            }
+            .btn-outline {
+                @apply border border-gray-300 hover:border-primary hover:text-primary px-4 py-2 rounded-lg transition-all duration-300;
+            }
+            .data-table-row {
+                @apply border-b border-gray-200 hover:bg-gray-50 transition-colors;
+            }
+            .data-table-header {
+                @apply text-left py-3 px-4 font-medium text-gray-600 bg-gray-50;
+            }
+            .data-table-cell {
+                @apply py-3 px-4 text-gray-800;
+            }
+            .search-result-item {
+                @apply p-3 hover:bg-gray-50 cursor-pointer transition-colors;
+            }
+        }
+    </style>
+</head>
+<body class="font-inter bg-gray-100 text-dark min-h-screen flex flex-col">
+    <!-- 顶部导航栏 -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-line-chart text-primary text-2xl"></i>
+                <h1 class="text-xl font-bold text-dark hidden sm:block">金融数据平台</h1>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="relative hidden sm:block">
+                    <input type="text" placeholder="搜索..." class="pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
+                    <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                </div>
+                <button class="relative text-gray-500 hover:text-primary transition-colors">
+                    <i class="fa-solid fa-bell text-xl"></i>
+                    <span class="absolute -top-1 -right-1 bg-danger text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">3</span>
+                </button>
+                <div class="flex items-center gap-2">
+                    <img src="https://picsum.photos/id/1005/200/200" alt="用户头像" class="w-8 h-8 rounded-full object-cover border-2 border-primary/20">
+                    <span class="hidden sm:block">张三</span>
+                    <i class="fa-solid fa-angle-down text-gray-400"></i>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden">
+        <!-- 左侧菜单栏 -->
+        <aside class="w-16 sm:w-64 bg-white shadow-sm h-[calc(100vh-64px)] sticky top-[64px] transition-all duration-300">
+            <nav class="py-4 h-full flex flex-col">
+                <div class="flex flex-col">
+                    <a href="{% url 'account' %}" class="nav-item">
+                        <i class="fa-solid fa-user-circle text-xl"></i>
+                        <span class="hidden sm:block">账号管理</span>
+                    </a>
+                    <a href="{% url 'service' %}" class="nav-item">
+                        <i class="fa-solid fa-headphones text-xl"></i>
+                        <span class="hidden sm:block">智能客服</span>
+                    </a>
+                    <a href="{% url 'alert' %}" class="nav-item">
+                        <i class="fa-solid fa-exclamation-triangle text-xl"></i>
+                        <span class="hidden sm:block">风险警报</span>
+                    </a>
+                    <a href="{% url 'advice' %}" class="nav-item">
+                        <i class="fa-solid fa-lightbulb text-xl"></i>
+                        <span class="hidden sm:block">投资建议</span>
+                    </a>
+                    <a href="{% url 'query' %}" class="nav-item menu-active">
+                        <i class="fa-solid fa-search text-xl"></i>
+                        <span class="hidden sm:block">数据查询</span>
+                    </a>
+                    <a href="{% url 'predict' %}" class="nav-item">
+                        <i class="fa-solid fa-crystal-ball text-xl"></i>
+                        <span class="hidden sm:block">数据预测</span>
+                    </a>
+                </div>
+                
+                <div class="mt-auto pt-4 border-t border-gray-200">
+                    <a href="#settings" class="nav-item">
+                        <i class="fa-solid fa-cog text-xl"></i>
+                        <span class="hidden sm:block">设置</span>
+                    </a>
+                    <a href="#help" class="nav-item">
+                        <i class="fa-solid fa-question-circle text-xl"></i>
+                        <span class="hidden sm:block">帮助中心</span>
+                    </a>
+                    <a href="#logout" class="nav-item">
+                        <i class="fa-solid fa-sign-out-alt text-xl"></i>
+                        <span class="hidden sm:block">退出登录</span>
+                    </a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="flex-1 overflow-y-auto p-4 sm:p-6">
+            <div class="mb-6">
+                <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-dark">数据查询</h2>
+                <p class="text-gray-500">搜索和分析金融市场数据</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2">
+                    <div class="bg-white rounded-xl shadow-card p-5 mb-6">
+                        <h3 class="font-semibold text-lg mb-4">市场数据搜索</h3>
+                        <div class="space-y-4">
+                            <div class="flex flex-col sm:flex-row gap-3">
+                                <div class="flex-1 relative">
+                                    <input type="text" id="searchSymbol" placeholder="输入股票代码或名称..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                                    <div id="searchResults" class="absolute left-0 right-0 top-full mt-1 bg-white shadow-lg rounded-lg z-10 max-h-60 overflow-y-auto hidden">
+                                        <div class="search-result-item">
+                                            <div class="font-medium">苹果公司 (AAPL)</div>
+                                            <div class="text-sm text-gray-500">科技 • 美国</div>
+                                        </div>
+                                        <div class="search-result-item">
+                                            <div class="font-medium">微软公司 (MSFT)</div>
+                                            <div class="text-sm text-gray-500">科技 • 美国</div>
+                                        </div>
+                                        <div class="search-result-item">
+                                            <div class="font-medium">亚马逊公司 (AMZN)</div>
+                                            <div class="text-sm text-gray-500">零售 • 美国</div>
+                                        </div>
+                                        <div class="search-result-item">
+                                            <div class="font-medium">谷歌公司 (GOOGL)</div>
+                                            <div class="text-sm text-gray-500">科技 • 美国</div>
+                                        </div>
+                                        <div class="search-result-item">
+                                            <div class="font-medium">特斯拉公司 (TSLA)</div>
+                                            <div class="text-sm text-gray-500">汽车 • 美国</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button class="btn-primary whitespace-nowrap">
+                                    <i class="fa-solid fa-search mr-1"></i> 搜索数据
+                                </button>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <option>股票</option>
+                                    <option>基金</option>
+                                    <option>债券</option>
+                                    <option>指数</option>
+                                    <option>期货</option>
+                                </select>
+                                <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <option>上海证券交易所</option>
+                                    <option>深圳证券交易所</option>
+                                    <option>香港交易所</option>
+                                    <option>纽约证券交易所</option>
+                                    <option>纳斯达克</option>
+                                </select>
+                                <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <option>人民币</option>
+                                    <option>美元</option>
+                                    <option>港元</option>
+                                    <option>欧元</option>
+                                    <option>日元</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-card p-5 mb-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-semibold text-lg">市场数据详情</h3>
+                            <div class="flex gap-2">
+                                <button class="btn-outline text-sm">日K</button>
+                                <button class="btn-outline text-sm">周K</button>
+                                <button class="btn-primary text-sm">月K</button>
+                                <button class="btn-outline text-sm">年K</button>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <div class="flex flex-col md:flex-row gap-6 items-start md:items-center">
+                                <div>
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <div class="w-10 h-10 bg-blue-100 rounded-md flex items-center justify-center">
+                                            <i class="fa-brands fa-apple text-blue-600"></i>
+                                        </div>
+                                        <h4 class="font-bold text-xl">苹果公司 (AAPL)</h4>
+                                    </div>
+                                    <p class="text-gray-500">科技 • 美国</p>
+                                </div>
+                                <div class="flex-1"></div>
+                                <div class="text-right">
+                                    <p class="text-3xl font-bold">¥172.45</p>
+                                    <p class="text-success flex items-center justify-end gap-1">
+                                        <i class="fa-solid fa-arrow-up"></i> 2.4% (¥4.05)
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="h-[400px]">
+                            <canvas id="stockChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-card p-5 mb-6">
+                        <h3 class="font-semibold text-lg mb-4">关键财务指标</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <p class="text-sm text-gray-500 mb-1">市盈率 (TTM)</p>
+                                <p class="text-2xl font-bold">28.76</p>
+                                <p class="text-xs text-success">较行业平均高 12%</p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <p class="text-sm text-gray-500 mb-1">市净率</p>
+                                <p class="text-2xl font-bold">3.54</p>
+                                <p class="text-xs text-danger">较行业平均低 8%</p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <p class="text-sm text-gray-500 mb-1">股息率</p>
+                                <p class="text-2xl font-bold">0.52%</p>
+                                <p class="text-xs text-success">同比增长 3.2%</p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <p class="text-sm text-gray-500 mb-1">净利润率</p>
+                                <p class="text-2xl font-bold">25.4%</p>
+                                <p class="text-xs text-success">同比增长 5.1%</p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <p class="text-sm text-gray-500 mb-1">ROE</p>
+                                <p class="text-2xl font-bold">32.7%</p>
+                                <p class="text-xs text-success">较行业平均高 15%</p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <p class="text-sm text-gray-500 mb-1">资产负债率</p>
+                                <p class="text-2xl font-bold">68.3%</p>
+                                <p class="text-xs text-danger">同比增长 2.8%</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-card p-5">
+                        <h3 class="font-semibold text-lg mb-4">历史数据</h3>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full">
+                                <thead>
+                                    <tr>
+                                        <th class="data-table-header">日期</th>
+                                        <th class="data-table-header">开盘价</th>
+                                        <th class="data-table-header">最高价</th>
+                                        <th class="data-table-header">最低价</th>
+                                        <th class="data-table-header">收盘价</th>
+                                        <th class="data-table-header">涨跌幅</th>
+                                        <th class="data-table-header">成交量</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="data-table-row">
+                                        <td class="data-table-cell">2025-05-12</td>
+                                        <td class="data-table-cell">¥168.40</td>
+                                        <td class="data-table-cell">¥173.25</td>
+                                        <td class="data-table-cell">¥167.95</td>
+                                        <td class="data-table-cell">¥172.45</td>
+                                        <td class="data-table-cell text-success">+2.40%</td>
+                                        <td class="data-table-cell">56.2M</td>
+                                    </tr>
+                                    <tr class="data-table-row">
+                                        <td class="data-table-cell">2025-05-11</td>
+                                        <td class="data-table-cell">¥170.10</td>
+                                        <td class="data-table-cell">¥170.55</td>
+                                        <td class="data-table-cell">¥166.50</td>
+                                        <td class="data-table-cell">¥168.40</td>
+                                        <td class="data-table-cell text-danger">-1.00%</td>
+                                        <td class="data-table-cell">62.8M</td>
+                                    </tr>
+                                    <tr class="data-table-row">
+                                        <td class="data-table-cell">2025-05-10</td>
+                                        <td class="data-table-cell">¥171.85</td>
+                                        <td class="data-table-cell">¥172.00</td>
+                                        <td class="data-table-cell">¥169.30</td>
+                                        <td class="data-table-cell">¥170.10</td>
+                                        <td class="data-table-cell text-danger">-0.90%</td>
+                                        <td class="data-table-cell">48.5M</td>
+                                    </tr>
+                                    <tr class="data-table-row">
+                                        <td class="data-table-cell">2025-05-09</td>
+                                        <td class="data-table-cell">¥172.00</td>
+                                        <td class="data-table-cell">¥173.50</td>
+                                        <td class="data-table-cell">¥170.80</td>
+                                        <td class="data-table-cell">¥171.65</td>
+                                        <td class="data-table-cell text-success">+0.38%</td>
+                                        <td class="data-table-cell">42.3M</td>
+                                    </tr>
+                                    <tr class="data-table-row">
+                                        <td class="data-table-cell">2025-05-08</td>
+                                        <td class="data-table-cell">¥170.25</td>
+                                        <td class="data-table-cell">¥172.75</td>
+                                        <td class="data-table-cell">¥169.95</td>
+                                        <td class="data-table-cell">¥171.00</td>
+                                        <td class="data-table-cell text-success">+0.44%</td>
+                                        <td class="data-table-cell">45.6M</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="mt-4 flex justify-between items-center">
+                            <p class="text-sm text-gray-500">显示 1-5 条，共 25 条</p>
+                            <div class="flex gap-1">
+                                <button class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-300 text-gray-500 hover:border-primary hover:text-primary transition-colors">
+                                    <i class="fa-solid fa-angle-left"></i>
+                                </button>
+                                <button class="w-8 h-8 flex items-center justify-center rounded-lg bg-primary text-white">1</button>
+                                <button class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-300 hover:border-primary hover:text-primary transition-colors">2</button>
+                                <button class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-300 hover:border-primary hover:text-primary transition-colors">3</button>
+                                <button class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-300 hover:border-primary hover:text-primary transition-colors">4</button>
+                                <button class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-300 hover:border-primary hover:text-primary transition-colors">5</button>
+                                <button class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-300 text-gray-500 hover:border-primary hover:text-primary transition-colors">
+                                    <i class="fa-solid fa-angle-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="bg-white rounded-xl shadow-card p-5 mb-6">
+                        <h3 class="font-semibold text-lg mb-4">市场数据筛选</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">价格区间</label>
+                                <div class="flex items-center gap-2">
+                                    <input type="number" placeholder="最低" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <span class="text-gray-500">-</span>
+                                    <input type="number" placeholder="最高" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">涨跌幅</label>
+                                <div class="space-y-2">
+                                    <label class="flex items-center gap-2 p-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                                        <input type="checkbox" class="accent-primary">
+                                        <span>涨幅超过5%</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 p-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                                        <input type="checkbox" class="accent-primary">
+                                        <span>涨幅超过10%</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 p-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                                        <input type="checkbox" class="accent-primary">
+                                        <span>跌幅超过5%</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 p-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                                        <input type="checkbox" class="accent-primary">
+                                        <span>跌幅超过10%</span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">行业</label>
+                                <select class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <option>全部行业</option>
+                                    <option>科技</option>
+                                    <option>金融</option>
+                                    <option>医疗保健</option>
+                                    <option>消费</option>
+                                    <option>能源</option>
+                                    <option>工业</option>
+                                    <option>房地产</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">市值</label>
+                                <select class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <option>全部市值</option>
+                                    <option>大型股 (超过2000亿)</option>
+                                    <option>中型股 (200-2000亿)</option>
+                                    <option>小型股 (低于200亿)</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">股息率</label>
+                                <select class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <option>全部</option>
+                                    <option>大于1%</option>
+                                    <option>大于2%</option>
+                                    <option>大于3%</option>
+                                    <option>大于5%</option>
+                                </select>
+                            </div>
+                            
+                            <div class="flex gap-2">
+                                <button class="btn-primary flex-1">
+                                    应用筛选
+                                </button>
+                                <button class="btn-outline">
+                                    重置
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-card p-5 mb-6">
+                        <h3 class="font-semibold text-lg mb-4">热门搜索</h3>
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-medium">1</span>
+                                    <div>
+                                        <div class="font-medium">英伟达 (NVDA)</div>
+                                        <div class="text-sm text-gray-500">科技 • 美国</div>
+                                    </div>
+                                </div>
+                                <div class="text-success text-sm">+7.8%</div>
+                            </div>
+                            
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-medium">2</span>
+                                    <div>
+                                        <div class="font-medium">特斯拉 (TSLA)</div>
+                                        <div class="text-sm text-gray-500">汽车 • 美国</div>
+                                    </div>
+                                </div>
+                                <div class="text-danger text-sm">-2.3%</div>
+                            </div>
+                            
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-medium">3</span>
+                                    <div>
+                                        <div class="font-medium">阿里巴巴 (BABA)</div>
+                                        <div class="text-sm text-gray-500">电商 • 中国</div>
+                                    </div>
+                                </div>
+                                <div class="text-success text-sm">+4.5%</div>
+                            </div>
+                            
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-6 h-6 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-sm font-medium">4</span>
+                                    <div>
+                                        <div class="font-medium">腾讯控股 (0700.HK)</div>
+                                        <div class="text-sm text-gray-500">科技 • 中国</div>
+                                    </div>
+                                </div>
+                                <div class="text-success text-sm">+1.2%</div>
+                            </div>
+                            
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-6 h-6 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-sm font-medium">5</span>
+                                    <div>
+                                        <div class="font-medium">贵州茅台 (600519.SS)</div>
+                                        <div class="text-sm text-gray-500">消费 • 中国</div>
+                                    </div>
+                                </div>
+                                <div class="text-danger text-sm">-0.8%</div>
+                            </div>
+                        </div>
+                        <button class="btn-outline w-full mt-4 text-sm">
+                            查看更多
+                        </button>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-card p-5 mb-6">
+                        <h3 class="font-semibold text-lg mb-4">市场新闻</h3>
+                        <div class="space-y-4">
+                            <div class="border-b border-gray-200 pb-4">
+                                <h4 class="font-medium mb-1">美联储维持利率不变，暗示今年可能降息</h4>
+                                <p class="text-sm text-gray-600 mb-2">美联储在最新会议中决定维持当前利率水平，但暗示随着通胀压力缓解，可能在今年晚些时候开始降息。</p>
+                                <div class="flex items-center justify-between text-xs text-gray-500">
+                                    <span>2小时前</span>
+                                    <span>财经新闻</span>
+                                </div>
+                            </div>
+                            
+                            <div class="border-b border-gray-200 pb-4">
+                                <h4 class="font-medium mb-1">苹果发布最新一代芯片，性能提升30%</h4>
+                                <p class="text-sm text-gray-600 mb-2">苹果公司昨日发布了最新一代M3芯片，相比上一代产品，CPU性能提升30%，GPU性能提升40%。</p>
+                                <div class="flex items-center justify-between text-xs text-gray-500">
+                                    <span>5小时前</span>
+                                    <span>科技新闻</span>
+                                </div>
+                            </div>
+                            
+                            <div class="border-b border-gray-200 pb-4">
+                                <h4 class="font-medium mb-1">新能源汽车销量持续增长，市场份额突破25%</h4>
+                                <p class="text-sm text-gray-600 mb-2">最新数据显示，全球新能源汽车销量在过去一年增长了35%，市场份额首次突破25%。</p>
+                                <div class="flex items-center justify-between text-xs text-gray-500">
+                                    <span>昨天</span>
+                                    <span>行业动态</span>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <h4 class="font-medium mb-1">全球供应链恢复正常，通胀压力进一步缓解</h4>
+                                <p class="text-sm text-gray-600 mb-2">随着全球供应链问题逐渐解决，原材料价格回落，各国通胀压力继续缓解，为央行货币政策调整提供空间。</p>
+                                <div class="flex items-center justify-between text-xs text-gray-500">
+                                    <span>2天前</span>
+                                    <span>国际经济</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn-outline w-full mt-4 text-sm">
+                            查看更多新闻
+                        </button>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-card p-5">
+                        <h3 class="font-semibold text-lg mb-4">数据导出</h3>
+                        <div class="space-y-3">
+                            <p class="text-sm text-gray-600">将当前查询的数据导出为不同格式的文件</p>
+                            <div class="grid grid-cols-2 gap-3">
+                                <button class="flex items-center justify-center gap-2 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                                    <i class="fa-solid fa-file-excel text-green-600"></i>
+                                    <span class="text-sm">Excel (.xlsx)</span>
+                                </button>
+                                <button class="flex items-center justify-center gap-2 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                                    <i class="fa-solid fa-file-csv text-blue-600"></i>
+                                    <span class="text-sm">CSV (.csv)</span>
+                                </button>
+                                <button class="flex items-center justify-center gap-2 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                                    <i class="fa-solid fa-file-pdf text-red-600"></i>
+                                    <span class="text-sm">PDF (.pdf)</span>
+                                </button>
+                                <button class="flex items-center justify-center gap-2 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                                    <i class="fa-solid fa-file-image text-purple-600"></i>
+                                    <span class="text-sm">图片 (.png)</span>
+                                </button>
+                            </div>
+                            <div class="border-t border-gray-200 pt-4">
+                                <h4 class="font-medium mb-2">自定义导出设置</h4>
+                                <div class="space-y-2">
+                                    <label class="flex items-center gap-2">
+                                        <input type="checkbox" checked class="accent-primary">
+                                        <span class="text-sm">包含图表数据</span>
+                                    </label>
+                                    <label class="flex items-center gap-2">
+                                        <input type="checkbox" checked class="accent-primary">
+                                        <span class="text-sm">包含技术指标</span>
+                                    </label>
+                                    <label class="flex items-center gap-2">
+                                        <input type="checkbox" class="accent-primary">
+                                        <span class="text-sm">包含财务数据</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <button class="btn-primary w-full mt-4">
+                                生成导出文件
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // 搜索结果处理
+        async function handleSearch() {
+            const query = document.getElementById('searchSymbol').value;
+            const dataType = document.querySelector('select').value.toLowerCase();
+        
+            if (!query) {
+                alert('请输入搜索关键词');
+                return;
+            }
+        
+            try {
+                const response = await fetch('/api/query/search/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        query: query,
+                        data_type: dataType
+                    })
+                });
+        
+                const data = await response.json();
+                if (data.status === 'success') {
+                    updateSearchResults(data.data);
+                    showSearchResults();
+                } else {
+                    alert('搜索失败：' + data.message);
+                }
+            } catch (error) {
+                console.error('请求失败：', error);
+                alert('请求失败，请稍后重试');
+            }
+        }
+        
+        // 更新搜索结果列表
+        function updateSearchResults(results) {
+            const resultsContainer = document.getElementById('searchResults');
+            resultsContainer.innerHTML = results.map(item => `
+                <div class="search-result-item" onclick="selectSymbol('${item.code}')">
+                    <div class="font-medium">${item.name} (${item.code})</div>
+                    <div class="text-sm text-gray-500">${item.industry} • ${item.market}</div>
+                </div>
+            `).join('');
+        }
+        
+        // 显示搜索结果
+        function showSearchResults() {
+            const resultsContainer = document.getElementById('searchResults');
+            resultsContainer.classList.remove('hidden');
+        }
+        
+        // 隐藏搜索结果
+        function hideSearchResults() {
+            const resultsContainer = document.getElementById('searchResults');
+            resultsContainer.classList.add('hidden');
+        }
+        
+        // 选择股票
+        function selectSymbol(symbol) {
+            document.getElementById('searchSymbol').value = symbol;
+            hideSearchResults();
+            loadHistoricalData(symbol);
+        }
+        
+        // 加载历史数据
+        async function loadHistoricalData(symbol) {
+            const endDate = new Date().toISOString().split('T')[0];
+            const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        
+            try {
+                const response = await fetch(`/api/query/historical/?symbol=${symbol}&start_date=${startDate}&end_date=${endDate}`);
+                const data = await response.json();
+        
+                if (data.status === 'success') {
+                    updateHistoricalChart(data.data);
+                    loadMarketAnalysis(symbol);
+                }
+            } catch (error) {
+                console.error('加载历史数据失败：', error);
+            }
+        }
+        
+        // 更新历史数据图表
+        function updateHistoricalChart(data) {
+            const ctx = document.getElementById('historicalChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.dates,
+                    datasets: [{
+                        label: '收盘价',
+                        data: data.prices,
+                        borderColor: '#165DFF',
+                        tension: 0.4,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 加载市场分析
+        async function loadMarketAnalysis(symbol) {
+            try {
+                const response = await fetch(`/api/query/analyze/?symbol=${symbol}&analysis_type=technical`);
+                const data = await response.json();
+        
+                if (data.status === 'success') {
+                    updateAnalysisResults(data.data);
+                }
+            } catch (error) {
+                console.error('加载市场分析失败：', error);
+            }
+        }
+        
+        // 更新分析结果
+        function updateAnalysisResults(analysis) {
+            // 更新核心指标
+            document.getElementById('keyMetrics').innerHTML = analysis.key_metrics.map(metric => `
+                <div class="p-4 bg-gray-50 rounded-lg">
+                    <div class="text-sm text-gray-500">${metric.name}</div>
+                    <div class="text-lg font-medium ${metric.trend === 'up' ? 'text-success' : 'text-danger'}">
+                        ${metric.value}
+                    </div>
+                </div>
+            `).join('');
+        
+            // 更新市场表现
+            document.getElementById('marketPerformance').innerHTML = `
+                <div class="space-y-2">
+                    ${analysis.market_performance.map(item => `
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">${item.name}</span>
+                            <span class="font-medium ${item.value >= 0 ? 'text-success' : 'text-danger'}">
+                                ${item.value}%
+                            </span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        
+            // 更新投资建议
+            document.getElementById('investmentAdvice').innerHTML = `
+                <div class="p-4 bg-primary/5 rounded-lg">
+                    <h4 class="font-medium mb-2">投资建议</h4>
+                    <p class="text-gray-600">${analysis.investment_advice}</p>
+                </div>
+            `;
+        }
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            // 绑定搜索按钮事件
+            document.querySelector('.btn-primary').addEventListener('click', handleSearch);
+            
+            // 绑定搜索框事件
+            const searchInput = document.getElementById('searchSymbol');
+            searchInput.addEventListener('focus', () => {
+                if (searchInput.value) {
+                    showSearchResults();
+                }
+            });
+            
+            // 点击页面其他地方时隐藏搜索结果
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('#searchSymbol') && !e.target.closest('#searchResults')) {
+                    hideSearchResults();
+                }
+            });
+        });
+        </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化股票图表
+            const stockCtx = document.getElementById('stockChart').getContext('2d');
+            new Chart(stockCtx, {
+                type: 'line',
+                data: {
+                    labels: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
+                    datasets: [{
+                        label: '苹果公司 (AAPL)',
+                        data: [150.25, 145.80, 162.40, 175.60, 168.30, 172.90, 185.75, 192.30, 188.45, 178.20, 165.90, 172.45],
+                        borderColor: '#165DFF',
+                        backgroundColor: 'rgba(22, 93, 255, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 0,
+                        pointHoverRadius: 6,
+                        pointBackgroundColor: '#FFFFFF',
+                        pointBorderColor: '#165DFF',
+                        pointHoverBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index',
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                            titleColor: '#1D2129',
+                            bodyColor: '#4E5969',
+                            borderColor: '#E5E6EB',
+                            borderWidth: 1,
+                            padding: 10,
+                            boxPadding: 5,
+                            usePointStyle: true,
+                            callbacks: {
+                                label: function(context) {
+                                    return `价格: ¥${context.raw.toFixed(2)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            ticks: {
+                                callback: function(value) {
+                                    return '¥' + value;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 搜索框交互
+            const searchInput = document.getElementById('searchSymbol');
+            const searchResults = document.getElementById('searchResults');
+
+            searchInput.addEventListener('focus', function() {
+                searchResults.classList.remove('hidden');
+            });
+
+            searchInput.addEventListener('blur', function() {
+                setTimeout(() => {
+                    searchResults.classList.add('hidden');
+                }, 200);
+            });
+
+            // 搜索结果点击
+            const resultItems = searchResults.querySelectorAll('.search-result-item');
+            resultItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    searchInput.value = this.querySelector('.font-medium').textContent;
+                    searchResults.classList.add('hidden');
+                });
+            });
+        });
+    </script>
+</body>
+</html>    

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录</title>
+    <link rel="stylesheet" href="/static/css/auth.css">
+</head>
+<body>
+    <div class="container">
+        <div class="form-box">
+            <h2>用户登录</h2>
+            <form method="post" action="/api/users/login/">
+                {% csrf_token %}
+                <div class="input-group">
+                    <input type="text" name="username" required placeholder="用户名">
+                </div>
+                <div class="input-group">
+                    <input type="password" name="password" required placeholder="密码">
+                </div>
+                <button type="submit" class="submit-btn">登录</button>
+                <p class="switch-link">还没有账号？<a href="/register">立即注册</a></p>
+            </form>
+        </div>
+    </div>
+    <script>
+    document.querySelector('form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const password = formData.get('password');
+        
+        // SHA-256 password encryption
+        const encoder = new TextEncoder();
+        const data = encoder.encode(password);
+        crypto.subtle.digest('SHA-256', data).then(hash => {
+            // Convert hash to hex string
+            const hashArray = Array.from(new Uint8Array(hash));
+            const hashedPassword = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            
+            // Replace original password
+            formData.set('password', hashedPassword);
+            
+            // Send login request
+            fetch('/api/users/login/', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.token) {
+                    // Store token on successful login
+                    localStorage.setItem('token', data.token);
+                    // Redirect using server's URL or fallback
+                    window.location.href = data.redirect_url || '/user_auth/account';
+                } else if (data.error) {
+                    alert(data.error);
+                }
+            })
+            .catch(error => {
+                alert('Login failed, please try again');
+            });
+        });
+    });
+    </script>
+</body>
+</html>

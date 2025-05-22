@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>金融数据平台 - 智能客服</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36BFFA',
+                        success: '#00B42A',
+                        warning: '#FF7D00',
+                        danger: '#F53F3F',
+                        dark: '#1D2129',
+                        'gray-100': '#F2F3F5',
+                        'gray-200': '#E5E6EB',
+                        'gray-300': '#C9CDD4',
+                        'gray-400': '#86909C',
+                        'gray-500': '#4E5969',
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'card': '0 4px 20px rgba(0, 0, 0, 0.08)',
+                        'card-hover': '0 8px 30px rgba(0, 0, 0, 0.12)',
+                    }
+                },
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .menu-active {
+                @apply bg-primary/10 text-primary border-r-4 border-primary;
+            }
+            .card-transition {
+                @apply transition-all duration-300 ease-in-out;
+            }
+            .nav-item {
+                @apply flex items-center gap-3 px-4 py-3 text-gray-500 hover:bg-primary/5 hover:text-primary card-transition;
+            }
+            .btn-primary {
+                @apply bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg transition-all duration-300;
+            }
+            .btn-outline {
+                @apply border border-gray-300 hover:border-primary hover:text-primary px-4 py-2 rounded-lg transition-all duration-300;
+            }
+            .chat-message {
+                @apply p-3 rounded-lg my-2 max-w-[80%] clear-both;
+            }
+            .chat-message-bot {
+                @apply bg-gray-100 float-left rounded-tl-none;
+            }
+            .chat-message-user {
+                @apply bg-primary text-white float-right rounded-tr-none;
+            }
+            .faq-item {
+                @apply border-b border-gray-200 py-4 cursor-pointer;
+            }
+            .faq-question {
+                @apply flex items-center justify-between font-medium;
+            }
+            .faq-answer {
+                @apply mt-2 text-gray-500 max-h-0 overflow-hidden transition-all duration-300;
+            }
+            .faq-item.active .faq-answer {
+                @apply max-h-[500px];
+            }
+            .faq-item.active .faq-icon {
+                @apply transform rotate-180;
+            }
+        }
+    </style>
+    {% csrf_token %}
+</head>
+<body class="font-inter bg-gray-100 text-dark min-h-screen flex flex-col">
+    <!-- 顶部导航栏 -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-line-chart text-primary text-2xl"></i>
+                <h1 class="text-xl font-bold text-dark hidden sm:block">金融数据平台</h1>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="relative hidden sm:block">
+                    <input type="text" placeholder="搜索..." class="pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
+                    <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                </div>
+                <button class="relative text-gray-500 hover:text-primary transition-colors">
+                    <i class="fa-solid fa-bell text-xl"></i>
+                    <span class="absolute -top-1 -right-1 bg-danger text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">3</span>
+                </button>
+                <div class="flex items-center gap-2">
+                    <img src="https://picsum.photos/id/1005/200/200" alt="用户头像" class="w-8 h-8 rounded-full object-cover border-2 border-primary/20">
+                    <span class="hidden sm:block">张三</span>
+                    <i class="fa-solid fa-angle-down text-gray-400"></i>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden">
+        <!-- 左侧菜单栏 -->
+        <aside class="w-16 sm:w-64 bg-white shadow-sm h-[calc(100vh-64px)] sticky top-[64px] transition-all duration-300">
+            <nav class="py-4 h-full flex flex-col">
+                <div class="flex flex-col">
+                    <a href="{% url 'account' %}" class="nav-item">
+                        <i class="fa-solid fa-user-circle text-xl"></i>
+                        <span class="hidden sm:block">账号管理</span>
+                    </a>
+                    <a href="{% url 'service' %}" class="nav-item menu-active">
+                        <i class="fa-solid fa-headphones text-xl"></i>
+                        <span class="hidden sm:block">智能客服</span>
+                    </a>
+                    <a href="{% url 'alert' %}" class="nav-item">
+                        <i class="fa-solid fa-exclamation-triangle text-xl"></i>
+                        <span class="hidden sm:block">风险警报</span>
+                    </a>
+                    <a href="{% url 'advice' %}" class="nav-item">
+                        <i class="fa-solid fa-lightbulb text-xl"></i>
+                        <span class="hidden sm:block">投资建议</span>
+                    </a>
+                    <a href="{% url 'query' %}" class="nav-item">
+                        <i class="fa-solid fa-search text-xl"></i>
+                        <span class="hidden sm:block">数据查询</span>
+                    </a>
+                    <a href="{% url 'predict' %}" class="nav-item">
+                        <i class="fa-solid fa-crystal-ball text-xl"></i>
+                        <span class="hidden sm:block">数据预测</span>
+                    </a>
+                </div>
+                
+                <div class="mt-auto pt-4 border-t border-gray-200">
+                    <a href="#settings" class="nav-item">
+                        <i class="fa-solid fa-cog text-xl"></i>
+                        <span class="hidden sm:block">设置</span>
+                    </a>
+                    <a href="#help" class="nav-item">
+                        <i class="fa-solid fa-question-circle text-xl"></i>
+                        <span class="hidden sm:block">帮助中心</span>
+                    </a>
+                    <a href="#logout" class="nav-item">
+                        <i class="fa-solid fa-sign-out-alt text-xl"></i>
+                        <span class="hidden sm:block">退出登录</span>
+                    </a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="flex-1 overflow-y-auto p-4 sm:p-6">
+            <div class="mb-6">
+                <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-dark">智能客服</h2>
+                <p class="text-gray-500">获取即时帮助和支持</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- 聊天界面 -->
+                <div class="lg:col-span-2">
+                    <div class="bg-white rounded-xl shadow-card h-[calc(100vh-200px)] flex flex-col">
+                        <!-- 聊天头部 -->
+                        <div class="border-b border-gray-200 p-4 flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                                    <i class="fa-solid fa-robot text-primary"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-semibold">智能助手</h3>
+                                    <p class="text-xs text-gray-500">在线 • 通常在几秒内回复</p>
+                                </div>
+                            </div>
+                            <div class="flex gap-3">
+                                <button class="text-gray-500 hover:text-primary transition-colors">
+                                    <i class="fa-solid fa-phone"></i>
+                                </button>
+                                <button class="text-gray-500 hover:text-primary transition-colors">
+                                    <i class="fa-solid fa-video"></i>
+                                </button>
+                                <button class="text-gray-500 hover:text-primary transition-colors">
+                                    <i class="fa-solid fa-ellipsis-v"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- 聊天内容 -->
+                        <div class="flex-1 overflow-y-auto p-4" id="chatMessages">
+                            <div class="chat-message chat-message-bot">
+                                <p>您好！我是您的智能金融助手，有什么可以帮助您的吗？</p>
+                            </div>
+                            <div class="chat-message chat-message-bot">
+                                <p>您可以问我关于账户管理、投资建议、风险评估等方面的问题。</p>
+                            </div>
+                        </div>
+
+                        <!-- 聊天输入 -->
+                        <div class="border-t border-gray-200 p-4">
+                            <div class="flex gap-2">
+                                <input type="text" id="messageInput" placeholder="输入您的问题..." class="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                <button id="sendMessage" class="bg-primary text-white p-2 rounded-lg hover:bg-primary/90 transition-colors">
+                                    <i class="fa-solid fa-paper-plane"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 常见问题 -->
+                <div>
+                    <div class="bg-white rounded-xl shadow-card p-5 mb-6">
+                        <h3 class="font-semibold text-lg mb-4">常见问题</h3>
+                        <div class="space-y-2">
+                            <div class="faq-item active">
+                                <div class="faq-question">
+                                    <span>如何重置我的交易密码？</span>
+                                    <i class="fa-solid fa-chevron-down faq-icon text-gray-400 transition-transform"></i>
+                                </div>
+                                <div class="faq-answer">
+                                    <p>您可以通过以下步骤重置交易密码：</p>
+                                    <ol class="list-decimal pl-5 mt-2 space-y-1">
+                                        <li>登录您的账户</li>
+                                        <li>点击"设置"选项</li>
+                                        <li>选择"安全中心"</li>
+                                        <li>点击"修改交易密码"</li>
+                                        <li>按照提示完成身份验证</li>
+                                        <li>设置新的交易密码</li>
+                                    </ol>
+                                </div>
+                            </div>
+                            
+                            <div class="faq-item">
+                                <div class="faq-question">
+                                    <span>如何绑定我的银行卡？</span>
+                                    <i class="fa-solid fa-chevron-down faq-icon text-gray-400 transition-transform"></i>
+                                </div>
+                                <div class="faq-answer">
+                                    <p>您可以在"账户管理"页面的"银行卡管理"选项中添加新的银行卡。系统支持大部分主流银行的借记卡绑定。</p>
+                                </div>
+                            </div>
+                            
+                            <div class="faq-item">
+                                <div class="faq-question">
+                                    <span>什么是风险评估？</span>
+                                    <i class="fa-solid fa-chevron-down faq-icon text-gray-400 transition-transform"></i>
+                                </div>
+                                <div class="faq-answer">
+                                    <p>风险评估是我们为您提供的一项服务，通过分析您的投资目标、投资经验、财务状况等因素，评估您的风险承受能力，以便为您提供更合适的投资建议。</p>
+                                </div>
+                            </div>
+                            
+                            <div class="faq-item">
+                                <div class="faq-question">
+                                    <span>如何查看我的交易记录？</span>
+                                    <i class="fa-solid fa-chevron-down faq-icon text-gray-400 transition-transform"></i>
+                                </div>
+                                <div class="faq-answer">
+                                    <p>您可以在"交易"菜单下选择"交易历史"，查看最近的交易记录。您也可以根据时间范围、交易类型等条件进行筛选。</p>
+                                </div>
+                            </div>
+                            
+                            <div class="faq-item">
+                                <div class="faq-question">
+                                    <span>平台的收费标准是什么？</span>
+                                    <i class="fa-solid fa-chevron-down faq-icon text-gray-400 transition-transform"></i>
+                                </div>
+                                <div class="faq-answer">
+                                    <p>我们平台的收费标准包括交易佣金、资金管理费等。具体收费标准可以在"帮助中心"的"收费说明"页面查看，或联系客服获取详细信息。</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 联系客服 -->
+                    <div class="bg-white rounded-xl shadow-card p-5">
+                        <h3 class="font-semibold text-lg mb-4">联系我们</h3>
+                        <div class="space-y-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                                    <i class="fa-solid fa-phone text-primary"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-500">客服热线</p>
+                                    <p class="font-medium">400-123-4567</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                                    <i class="fa-solid fa-envelope text-primary"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-500">电子邮箱</p>
+                                    <p class="font-medium">support@example.com</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                                    <i class="fa-solid fa-map-marker-alt text-primary"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-500">工作时间</p>
+                                    <p class="font-medium">周一至周日 9:00-21:00</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6">
+                            <h4 class="font-medium mb-3">关注我们</h4>
+                            <div class="flex gap-3">
+                                <a href="#" class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-colors">
+                                    <i class="fa-brands fa-weixin"></i>
+                                </a>
+                                <a href="#" class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-colors">
+                                    <i class="fa-brands fa-weibo"></i>
+                                </a>
+                                <a href="#" class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-colors">
+                                    <i class="fa-brands fa-qq"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const chatMessages = document.getElementById('chatMessages');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendMessage');
+
+        // 获取CSRF Token
+        function getCsrfToken() {
+            const token = document.querySelector('[name=csrfmiddlewaretoken]');
+            if (!token) {
+                console.error('CSRF Token not found');
+                return '';
+            }
+            return token.value;
+        }
+
+        // 添加消息到聊天界面
+        function appendMessage(message, type) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-message chat-message-${type}`;
+            messageDiv.innerHTML = `<p>${message}</p>`;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            return messageDiv;
+        }
+
+        // 发送消息处理函数
+        async function sendMessage(message) {
+            if (!message.trim()) return;
+
+            // 显示用户消息
+            appendMessage(message, 'user');
+            
+            // 显示加载状态
+            const loadingMessage = appendMessage('正在思考...', 'bot');
+            
+            try {
+                const response = await fetch('api/chat/message/', {  // 修改这里的URL
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCsrfToken()
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        message: message,
+                        user_context: {
+                            risk_preference: '中等',
+                            investment_experience: '3年以上'
+                        }
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                loadingMessage.remove();
+                
+                if (data.status === 'success') {
+                    appendMessage(data.data.message, 'bot');
+                } else {
+                    appendMessage('抱歉，我现在无法回答您的问题。请稍后再试。', 'bot');
+                }
+            } catch (error) {
+                console.error('发送消息失败：', error);
+                loadingMessage.textContent = `发送失败：${error.message}`;
+            }
+        }
+
+        // 添加事件监听器
+        sendButton.addEventListener('click', () => {
+            const message = messageInput.value.trim();
+            if (message) {
+                sendMessage(message);
+                messageInput.value = '';
+            }
+        });
+
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const message = messageInput.value.trim();
+                if (message) {
+                    sendMessage(message);
+                    messageInput.value = '';
+                }
+            }
+        });
+    </script>
+</body>
+</html>
+
+// 获取发送按钮和消息输入框元素
+const sendButton = document.getElementById('sendMessage');
+const messageInput = document.querySelector('textarea[placeholder="输入您的问题..."]');
+
+// 添加按钮点击事件监听器
+sendButton.addEventListener('click', () => {
+    const message = messageInput.value.trim();
+    if (message) {
+        // 发送消息
+        sendMessage(message);
+        // 清空输入框
+        messageInput.value = '';
+    }
+});
+
+// 添加消息到聊天界面的函数
+function appendMessage(message, type) {
+    const chatMessages = document.getElementById('chatMessages');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `chat-message chat-message-${type}`;
+    
+    const messageP = document.createElement('p');
+    messageP.textContent = message;
+    messageDiv.appendChild(messageP);
+    
+    chatMessages.appendChild(messageDiv);
+    
+    // 滚动到最新消息
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    
+    return messageDiv;
+}
+
+// 发送消息到后端的函数
+async function sendMessage(message) {
+    // 在聊天界面添加用户消息
+    appendMessage(message, 'user');
+    
+    // 添加加载提示
+    const loadingMessage = appendMessage('正在思考...', 'bot');
+    
+    try {
+        const response = await fetch('api/chat/message/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                message: message,
+                user_context: {
+                    risk_preference: '中等',
+                    investment_experience: '3年以上'
+                }
+            })
+        });
+        
+        const data = await response.json();
+        if (data.status === 'success') {
+            // 移除加载消息
+            loadingMessage.remove();
+            // 显示助手回复
+            appendMessage(data.data.message, 'bot');
+        } else {
+            loadingMessage.textContent = '抱歉，我现在无法回答您的问题。请稍后再试。';
+        }
+    } catch (error) {
+        console.error('发送消息失败：', error);
+        loadingMessage.textContent = '网络错误，请稍后重试。';
+    }
+}
+

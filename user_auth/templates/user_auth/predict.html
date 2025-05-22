@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>金融数据平台 - 数据预测</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+    <script>
+    async function generatePrediction() {
+        const stockCode = document.getElementById('predictionSymbol').value;
+        const timeFrame = document.querySelector('select:nth-child(1)').value;
+        const predictionType = document.querySelector('select:nth-child(3)').value;
+
+        if (!stockCode) {
+            alert('请输入股票代码');
+            return;
+        }
+        //headers: {
+        //      'Content-Type': 'application/x-www-form-urlencoded',
+        //       'X-CSRFToken': getCookie('csrftoken')
+        //   },
+        
+        
+        
+        try {
+            const response = await fetch('/api/predict/stock/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    stock_code: stockCode,
+                    time_frame: timeFrame,
+                    prediction_type: predictionType
+                })
+            });
+
+            const data = await response.json();
+            if (data.status === 'success') {
+                updatePredictionChart(data.data);
+                updatePredictionDetails(data.data);
+            } else {
+                alert('预测生成失败：' + data.message);
+            }
+        } catch (error) {
+            console.error('请求失败：', error);
+            alert('请求失败，请稍后重试');
+        }
+    }
+
+    function updatePredictionChart(data) {
+        const ctx = document.getElementById('predictionChart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.trend_data.map(d => d.date),
+                datasets: [
+                    {
+                        label: '预测价格',
+                        data: data.trend_data.map(d => d.predicted_price),
+                        borderColor: '#165DFF',
+                        tension: 0.4,
+                        fill: false
+                    },
+                    {
+                        label: '上限',
+                        data: data.trend_data.map(d => d.upper_bound),
+                        borderColor: '#00B42A',
+                        borderDash: [5, 5],
+                        tension: 0.4,
+                        fill: false
+                    },
+                    {
+                        label: '下限',
+                        data: data.trend_data.map(d => d.lower_bound),
+                        borderColor: '#F53F3F',
+                        borderDash: [5, 5],
+                        tension: 0.4,
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false
+                    }
+                }
+            }
+        });
+    }
+
+    function updatePredictionDetails(data) {
+        // 更新预测详情
+        document.querySelector('.prediction-confidence').className = 
+            `prediction-confidence confidence-${data.confidence_level.toLowerCase()}`;
+        document.querySelector('.prediction-confidence').textContent = 
+            `${data.confidence_level === 'high' ? '高' : data.confidence_level === 'medium' ? '中' : '低'}等可信度`;
+
+        // 更新价格区间
+        const priceRange = document.getElementById('priceRange');
+        priceRange.textContent = `${data.prediction_price.min} - ${data.prediction_price.max}`;
+
+        // 更新影响因素
+        const factorsList = document.getElementById('factorsList');
+        factorsList.innerHTML = data.factors.map(factor => 
+            `<li class="mb-2">${factor}</li>`
+        ).join('');
+
+        // 更新风险提示
+        const risksList = document.getElementById('risksList');
+        risksList.innerHTML = data.risks.map(risk => 
+            `<li class="mb-2 text-danger">${risk}</li>`
+        ).join('');
+    }
+
+    // 页面加载完成后初始化
+    document.addEventListener('DOMContentLoaded', () => {
+        // 绑定生成预测按钮事件
+        document.querySelector('.btn-primary').addEventListener('click', generatePrediction);
+    });
+    </script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36BFFA',
+                        success: '#00B42A',
+                        warning: '#FF7D00',
+                        danger: '#F53F3F',
+                        dark: '#1D2129',
+                        'gray-100': '#F2F3F5',
+                        'gray-200': '#E5E6EB',
+                        'gray-300': '#C9CDD4',
+                        'gray-400': '#86909C',
+                        'gray-500': '#4E5969',
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'card': '0 4px 20px rgba(0, 0, 0, 0.08)',
+                        'card-hover': '0 8px 30px rgba(0, 0, 0, 0.12)',
+                    }
+                },
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .menu-active {
+                @apply bg-primary/10 text-primary border-r-4 border-primary;
+            }
+            .card-transition {
+                @apply transition-all duration-300 ease-in-out;
+            }
+            .nav-item {
+                @apply flex items-center gap-3 px-4 py-3 text-gray-500 hover:bg-primary/5 hover:text-primary card-transition;
+            }
+            .btn-primary {
+                @apply bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg transition-all duration-300;
+            }
+            .btn-outline {
+                @apply border border-gray-300 hover:border-primary hover:text-primary px-4 py-2 rounded-lg transition-all duration-300;
+            }
+            .prediction-confidence {
+                @apply inline-block px-2 py-0.5 rounded-full text-xs font-medium;
+            }
+            .confidence-high {
+                @apply bg-success/10 text-success;
+            }
+            .confidence-medium {
+                @apply bg-primary/10 text-primary;
+            }
+            .confidence-low {
+                @apply bg-warning/10 text-warning;
+            }
+        }
+    </style>
+</head>
+<body class="font-inter bg-gray-100 text-dark min-h-screen flex flex-col">
+    <!-- 顶部导航栏 -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-line-chart text-primary text-2xl"></i>
+                <h1 class="text-xl font-bold text-dark hidden sm:block">金融数据平台</h1>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="relative hidden sm:block">
+                    <input type="text" placeholder="搜索..." class="pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
+                    <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                </div>
+                <button class="relative text-gray-500 hover:text-primary transition-colors">
+                    <i class="fa-solid fa-bell text-xl"></i>
+                    <span class="absolute -top-1 -right-1 bg-danger text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">3</span>
+                </button>
+                <div class="flex items-center gap-2">
+                    <img src="https://picsum.photos/id/1005/200/200" alt="用户头像" class="w-8 h-8 rounded-full object-cover border-2 border-primary/20">
+                    <span class="hidden sm:block">张三</span>
+                    <i class="fa-solid fa-angle-down text-gray-400"></i>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden">
+        <!-- 左侧菜单栏 -->
+        <aside class="w-16 sm:w-64 bg-white shadow-sm h-[calc(100vh-64px)] sticky top-[64px] transition-all duration-300">
+            <nav class="py-4 h-full flex flex-col">
+                <div class="flex flex-col">
+                    <a href="{% url 'account' %}" class="nav-item">
+                        <i class="fa-solid fa-user-circle text-xl"></i>
+                        <span class="hidden sm:block">账号管理</span>
+                    </a>
+                    <a href="{% url 'service' %}" class="nav-item">
+                        <i class="fa-solid fa-headphones text-xl"></i>
+                        <span class="hidden sm:block">智能客服</span>
+                    </a>
+                    <a href="{% url 'alert' %}" class="nav-item">
+                        <i class="fa-solid fa-exclamation-triangle text-xl"></i>
+                        <span class="hidden sm:block">风险警报</span>
+                    </a>
+                    <a href="{% url 'advice' %}" class="nav-item">
+                        <i class="fa-solid fa-lightbulb text-xl"></i>
+                        <span class="hidden sm:block">投资建议</span>
+                    </a>
+                    <a href="{% url 'query' %}" class="nav-item">
+                        <i class="fa-solid fa-search text-xl"></i>
+                        <span class="hidden sm:block">数据查询</span>
+                    </a>
+                    <a href="{% url 'predict' %}" class="nav-item menu-active">
+                        <i class="fa-solid fa-crystal-ball text-xl"></i>
+                        <span class="hidden sm:block">数据预测</span>
+                    </a>
+                </div>
+                
+                <div class="mt-auto pt-4 border-t border-gray-200">
+                    <a href="#settings" class="nav-item">
+                        <i class="fa-solid fa-cog text-xl"></i>
+                        <span class="hidden sm:block">设置</span>
+                    </a>
+                    <a href="#help" class="nav-item">
+                        <i class="fa-solid fa-question-circle text-xl"></i>
+                        <span class="hidden sm:block">帮助中心</span>
+                    </a>
+                    <a href="#logout" class="nav-item">
+                        <i class="fa-solid fa-sign-out-alt text-xl"></i>
+                        <span class="hidden sm:block">退出登录</span>
+                    </a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="flex-1 overflow-y-auto p-4 sm:p-6">
+            <div class="mb-6">
+                <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-dark">数据预测</h2>
+                <p class="text-gray-500">基于AI模型的金融市场预测分析</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2">
+                    <div class="bg-white rounded-xl shadow-card p-5 mb-6">
+                        <h3 class="font-semibold text-lg mb-4">市场趋势预测</h3>
+                        <div class="space-y-4">
+                            <div class="flex flex-col sm:flex-row gap-3">
+                                <div class="flex-1 relative">
+                                    <input type="text" id="predictionSymbol" placeholder="输入股票代码或名称..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                                </div>
+                                <button class="btn-primary whitespace-nowrap">
+                                    <i class="fa-solid fa-magic mr-1"></i> 生成预测
+                                </button>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <option>未来7天</option>
+                                    <option>未来30天</option>
+                                    <option>未来90天</option>
+                                    <option>未来180天</option>
+                                    <option>未来1年</option>
+                                </select>
+                                <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <option>日线</option>
+                                    <option>周线</option>
+                                    <option>月线</option>
+                                </select>
+                                <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <option>价格预测</option>
+                                    <option>波动率预测</option>
+                                    <option>交易量预测</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-card p-5 mb-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-semibold text-lg">苹果公司 (AAPL) 价格预测</h3>
+                            <span class="prediction-confidence confidence-medium">中等可信度</span>
+                        </div>
+                        <div class="h-[400px]">
+                            <canvas id="predictionChart"></canvas>
+                        </div>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                            <div class="bg-gray-50 rounded-lg p-4 text-center">
+                                <p class="text-sm text-gray-500 mb-1">当前价格</p>
+                                <p class="text-2xl font-bold">¥172.45</p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4 text-center">
+                                <p class="text-sm text-gray-500 mb-1">30天预测</p>
+                                <p class="text-2xl font-bold text-success">¥185.20 <span class="text-sm">+7.4%</span></p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4 text-center">
+                                <p class="text-sm text-gray-500 mb-1">90天预测</p>
+                                <p class="text-2xl font-bold text-success">¥198.75 <span class="text-sm">+15.2%</span></p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4 text-center">
+                                <p class="text-sm text-gray-500 mb-1">180天预测</p>
+                                <p class="text-2xl font-bold text-success">¥215.40 <span class="text-sm">+24.9%</span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-card p-5 mb-6">
+                        <h3 class="font-semibold text-lg mb-4">预测分析</h3>
+                        <div class="space-y-4">
+                            <div class="p-4 bg-primary/5 rounded-lg border border-primary/20">
+                                <h4 class="font-medium mb-2">主要驱动因素</h4>
+                                <ol class="list-de
+                                <i class="fa-solid fa-magic mr-1"></i> 生成预测
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                <option>未来7天</option>
+                                <option>未来30天</option>
+                                <option>未来90天</option>
+                                <option>未来180天</option>
+                                <option>未来1年</option>
+                            </select>
+                            <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                <option>日线</option>
+                                <option>周线</option>
+                                <option>月线</option>
+                            </select>
+                            <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                <option>价格预测</option>
+                                <option>波动率预测</option>
+                                <option>交易量预测</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-auto pt-4 border-t border-gray-200">
+                    <a href="#settings" class="nav-item">
+                        <i class="fa-solid fa-cog text-xl"></i>
+                        <span class="hidden sm:block">设置</span>
+                    </a>
+                    <a href="#help" class="nav-item">
+                        <i class="fa-solid fa-question-circle text-xl"></i>
+                        <span class="hidden sm:block">帮助中心</span>
+                    </a>
+                    <a href="#logout" class="nav-item">
+                        <i class="fa-solid fa-sign-out-alt text-xl"></i>
+                        <span class="hidden sm:block">退出登录</span>
+                    </a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="flex-1 overflow-y-auto p-4 sm:p-6">
+            <div class="mb-6">
+                <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-dark">数据预测</h2>
+                <p class="text-gray-500">基于AI模型的金融市场预测分析</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2">
+                    <div class="bg-white rounded-xl shadow-card p-5 mb-6">
+                        <h3 class="font-semibold text-lg mb-4">市场趋势预测</h3>
+                        <div class="space-y-4">
+                            <div class="flex flex-col sm:flex-row gap-3">
+                                <div class="flex-1 relative">
+                                    <input type="text" id="predictionSymbol" placeholder="输入股票代码或名称..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                                </div>
+                                <button class="btn-primary whitespace-nowrap">
+                                    <i class="fa-solid fa-magic mr-1"></i> 生成预测
+                                </button>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <option>未来7天</option>
+                                    <option>未来30天</option>
+                                    <option>未来90天</option>
+                                    <option>未来180天</option>
+                                    <option>未来1年</option>
+                                </select>
+                                <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <option>日线</option>
+                                    <option>周线</option>
+                                    <option>月线</option>
+                                </select>
+                                <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <option>价格预测</option>
+                                    <option>波动率预测</option>
+                                    <option>交易量预测</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-card p-5 mb-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-semibold text-lg">苹果公司 (AAPL) 价格预测</h3>
+                            <span class="prediction-confidence confidence-medium">中等可信度</span>
+                        </div>
+                        <div class="h-[400px]">
+                            <canvas id="predictionChart"></canvas>
+                        </div>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                            <div class="bg-gray-50 rounded-lg p-4 text-center">
+                                <p class="text-sm text-gray-500 mb-1">当前价格</p>
+                                <p class="text-2xl font-bold">¥172.45</p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4 text-center">
+                                <p class="text-sm text-gray-500 mb-1">30天预测</p>
+                                <p class="text-2xl font-bold text-success">¥185.20 <span class="text-sm">+7.4%</span></p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4 text-center">
+                                <p class="text-sm text-gray-500 mb-1">90天预测</p>
+                                <p class="text-2xl font-bold text-success">¥198.75 <span class="text-sm">+15.2%</span></p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4 text-center">
+                                <p class="text-sm text-gray-500 mb-1">180天预测</p>
+                                <p class="text-2xl font-bold text-success">¥215.40 <span class="text-sm">+24.9%</span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-card p-5 mb-6">
+                        <h3 class="font-semibold text-lg mb-4">预测分析</h3>
+                        <div class="space-y-4">
+                            <div class="p-4 bg-primary/5 rounded-lg border border-primary/20">
+                                <h4 class="font-medium mb-2">主要驱动因素</h4>
+                                <ol class="list-de
+                                <i class="fa-solid fa-magic mr-1"></i> 生成预测
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                <option>未来7天</option>
+                                <option>未来30天</option>
+                                <option>未来90天</option>
+                                <option>未来180天</option>
+                                <option>未来1年</option>
+                            </select>
+                            <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                <option>日线</option>
+                                <option>周线</option>
+                                <option>月线</option>
+                            </select>
+                            <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                <option>价格预测</option>
+                                <option>波动率预测</option>
+                                <option>交易量预测</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-auto pt-4 border-t border-gray-200">
+                    <a href="#settings" class="nav-item">
+                        <i class="fa-solid fa-cog text-xl"></i>
+                        <span class="hidden sm:block">设置</span>
+                    </a>
+                    <a href="#help" class="nav-item">
+                        <i class="fa-solid fa-question-circle text-xl"></i>
+                        <span class="hidden sm:block">帮助中心</span>
+                    </a>
+                    <a href="#logout" class="nav-item">
+                        <i class="fa-solid fa-sign-out-alt text-xl"></i>
+                        <span class="hidden sm:block">退出登录</span>
+                    </a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="flex-1 overflow-y-auto p-4 sm:p-6">
+            <div class="mb-6">
+                <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-dark">数据预测</h2>
+                <p class="text-gray-500">基于AI模型的金融市场预测分析</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2">
+                    <div class="bg-white rounded-xl shadow-card p-5 mb-6">
+                        <h3 class="font-semibold text-lg mb-4">市场趋势预测</h3>
+                        <div class="space-y-4">
+                            <div class="flex flex-col sm:flex-row gap-3">
+                                <div class="flex-1 relative">
+                                    <input type="text" id="predictionSymbol" placeholder="输入股票代码或名称..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                                </div>
+                                <button class="btn-primary whitespace-nowrap">
+                                    <i class="fa-solid fa-magic mr-1"></i> 生成预测
+                                </button>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <option>未来7天</option>
+                                    <option>未来30天</option>
+                                    <option>未来90天</option>
+                                    <option>未来180天</option>
+                                    <option>未来1年</option>
+                                </select>
+                                <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <option>日线</option>
+                                    <option>周线</option>
+                                    <option>月线</option>
+                                </select>
+                                <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <option>价格预测</option>
+                                    <option>波动率预测</option>
+                                    <option>交易量预测</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-card p-5 mb-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-semibold text-lg">苹果公司 (AAPL) 价格预测</h3>
+                            <span class="prediction-confidence confidence-medium">中等可信度</span>
+                        </div>
+                        <div class="h-[400px]">
+                            <canvas id="predictionChart"></canvas>
+                        </div>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                            <div class="bg-gray-50 rounded-lg p-4 text-center">
+                                <p class="text-sm text-gray-500 mb-1">当前价格</p>
+                                <p class="text-2xl font-bold">¥172.45</p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4 text-center">
+                                <p class="text-sm text-gray-500 mb-1">30天预测</p>
+                                <p class="text-2xl font-bold text-success">¥185.20 <span class="text-sm">+7.4%</span></p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4 text-center">
+                                <p class="text-sm text-gray-500 mb-1">90天预测</p>
+                                <p class="text-2xl font-bold text-success">¥198.75 <span class="text-sm">+15.2%</span></p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4 text-center">
+                                <p class="text-sm text-gray-500 mb-1">180天预测</p>
+                                <p class="text-2xl font-bold text-success">¥215.40 <span class="text-sm">+24.9%</span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-card p-5 mb-6">
+                        <h3 class="font-semibold text-lg mb-4">预测分析</h3>
+                        <div class="space-y-4">
+                            <div class="p-4 bg-primary/5 rounded-lg border border-primary/20">
+                                <h4 class="font-medium mb-2">主要驱动因素</h4>
+                                <ol class="list-de
+                                <i class="fa-solid fa-magic mr-1"></i> 生成预测
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                <option>未来7天</option>
+                                <option>未来30天</option>
+                                <option>未来90天</option>
+                                <option>未来180天</option>
+                                <option>未来1年</option>
+                            </select>
+                            <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                <option>日线</option>
+                                <option>周线</option>
+                                <option>月线</option>
+                            </select>
+                            <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                <option>价格预测</option>
+                                <option>波动率预测</option>
+                                <option>交易量预测</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-auto pt-4 border-t border-gray-200">
+                    <a href="#settings" class="nav-item">
+                        <i class="fa-solid fa-cog text-xl"></i>
+                        <span class="hidden sm:block">设置</span>
+                    </a>
+                    <a href="#help" class="nav-item">
+                        <i class="fa-solid fa-question-circle text-xl"></i>
+                        <span class="hidden sm:block">帮助中心</span>
+                    </a>
+                    <a href="#logout" class="nav-item">
+                        <i class="fa-solid fa-sign-out-alt text-xl"></i>
+                        <span class="hidden sm:block">退出登录</span>
+                    </a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="flex-1 overflow-y-auto p-4 sm:p-6">
+            <div class="mb-6">
+                <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-dark">数据预测</h2>
+                <p class="text-gray-500">基于AI模型的金融市场预测分析</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2">
+                    <div class="bg-white rounded-xl shadow-card p-5 mb-6">
+                        <h3 class="font-semibold text-lg mb-4">市场趋势预测</h3>
+                        <div class="space-y-4">
+                            <div class="flex flex-col sm:flex-row gap-3">
+                                <div class="flex-1 relative">
+                                    <input type="text" id="predictionSymbol" placeholder="输入股票代码或名称..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                                </div>
+                                <button class="btn-primary whitespace-nowrap">
+                                    <i class="fa-solid fa-magic mr-1"></i> 生成预测
+                                </button>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <option>未来7天</option>
+                                    <option>未来30天</option>
+                                    <option>未来90天</option>
+                                    <option>未来180天</option>
+                                    <option>未来1年</option>
+                                </select>
+                                <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <option>日线</option>
+                                    <option>周线</option>
+                                    <option>月线</option>
+                                </select>
+                                <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <option>价格预测</option>
+                                    <option>波动率预测</option>
+                                    <option>交易量预测</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-card p-5 mb-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-semibold text-lg">苹果公司 (AAPL) 价格预测</h3>
+                            <span class="prediction-confidence confidence-medium">中等可信度</span>
+                        </div>
+                        <div class="h-[400px]">
+                            <canvas id="predictionChart"></canvas>
+                        </div>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                            <div class="bg-gray-50 rounded-lg p-4 text-center">
+                                <p class="text-sm text-gray-500 mb-1">当前价格</p>
+                                <p class="text-2xl font-bold">¥172.45</p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4 text-center">
+                                <p class="text-sm text-gray-500 mb-1">30天预测</p>
+                                <p class="text-2xl font-bold text-success">¥185.20 <span class="text-sm">+7.4%</span></p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4 text-center">
+                                <p class="text-sm text-gray-500 mb-1">90天预测</p>
+                                <p class="text-2xl font-bold text-success">¥198.75 <span class="text-sm">+15.2%</span></p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4 text-center">
+                                <p class="text-sm text-gray-500 mb-1">180天预测</p>
+                                <p class="text-2xl font-bold text-success">¥215.40 <span class="text-sm">+24.9%</span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-card p-5 mb-6">
+                        <h3 class="font-semibold text-lg mb-4">预测分析</h3>
+                        <div class="space-y-4">
+                            <div class="p-4 bg-primary/5 rounded-lg border border-primary/20">
+                                <h4 class="font-medium mb-2">主要驱动因素</h4>
+                                <ol class="list-de
+                                <i class="fa-solid fa-magic mr-1"></i> 生成预测
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                <option>未来7天</option>
+                                <option>未来30天</option>
+                                <option>未来90天</option>
+                                <option>未来180天</option>
+                                <option>未来1年</option>
+                            </select>
+                            <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                <option>日线</option>
+                                <option>周线</option>
+                                <option>月线</option>
+                            </select>
+                            <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                <option>价格预测</option>
+                                <option>波动率预测</option>
+                                <option>交易量预测</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-auto pt-4 border-t border-gray-200">
+                    <a href="#settings" class="nav-item">
+                        <i class="fa-solid fa-cog text-xl"></i>
+                        <span class="hidden sm:block">设置</span>
+                    </a>
+                    <a href="#help" class="nav-item">
+                        <i class="fa-solid fa-question-circle text-xl"></i>
+                        <span class="hidden sm:block">帮助中心</span>
+                    </a>
+                    <a href="#logout" class="nav-item">
+                        <i class="fa-solid fa-sign-out-alt text-xl"></i>
+                        <span class="hidden sm:block">退出登录</span>
+                    </a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="flex-1 overflow-y-auto p-4 sm:p-6">
+            <div class="mb-6">
+                <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-dark">数据预测</h2>
+                <p class="text-gray-500">基于AI模型的金融市场预测分析</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2">
+                    <div class="bg-white rounded-xl shadow-card p-5 mb-6">
+                        <h3 class="font-semibold text-lg mb-4">市场趋势预测</h3>
+                        <div class="space-y-4">
+                            <div class="flex flex-col sm:flex-row gap-3">
+                                <div class="flex-1 relative">
+                                    <input type="text" id="predictionSymbol" placeholder="输入股票代码或名称..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                                </div>
+                                <button class="btn-primary whitespace-nowrap">
+                                    <i class="fa-solid fa-magic mr-1"></i> 生成预测
+                                </button>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <option>未来7天</option>
+                                    <option>未来30天</option>
+                                    <option>未来90天</option>
+                                    <option>未来180天</option>
+                                    <option>未来1年</option>
+                                </select>
+                                <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <option>日线</option>
+                                    <option>周线</option>
+                                    <option>月线</option>
+                                </select>
+                                <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <option>价格预测</option>
+                                    <option>波动率预测</option>
+                                    <option>交易量预测</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-card p-5 mb-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-semibold text-lg">苹果公司 (AAPL) 价格预测</h3>
+                            <span class="prediction-confidence confidence-medium">中等可信度</span>
+                        </div>
+                        <div class="h-[400px]">
+                            <canvas id="predictionChart"></canvas>
+                        </div>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                            <div class="bg-gray-50 rounded-lg p-4 text-center">
+                                <p class="text-sm text-gray-500 mb-1">当前价格</p>
+                                <p class="text-2xl font-bold">¥172.45</p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4 text-center">
+                                <p class="text-sm text-gray-500 mb-1">30天预测</p>
+                                <p class="text-2xl font-bold text-success">¥185.20 <span class="text-sm">+7.4%</span></p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4 text-center">
+                                <p class="text-sm text-gray-500 mb-1">90天预测</p>
+                                <p class="text-2xl font-bold text-success">¥198.75 <span class="text-sm">+15.2%</span></p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4 text-center">
+                                <p class="text-sm text-gray-500 mb-1">180天预测</p>
+                                <p class="text-2xl font-bold text-success">¥215.40 <span class="text-sm">+24.9%</span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-card p-5 mb-6">
+                        <h3 class="font-semibold text-lg mb-4">预测分析</h3>
+                        <div class="space-y-4">
+                            <div class="p-4 bg-primary/5 rounded-lg border border-primary/20">
+                                <h4 class="font-medium mb-2">主要驱动因素</h4>
+                                <ol class="list-de
+                                <i class="fa-solid fa-magic mr-1"></i> 生成预测
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                <option>未来7天</option>
+                                <option>未来30天</option>
+                                <option>未来90天</option>
+                                <option>未来180天</option>
+                                <option>未来1年</option>
+                            </select>
+                            <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                <option>日线</option>
+                                <option>周线</option>
+                                <option>月线</option>
+                            </select>
+                            <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                <option>价格预测</option>
+                                <option>波动率预测</option>
+                                <option>交易量预测</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-auto pt-4 border-t border-gray-200">
+                    <a href="#settings" class="nav-item">
+                        <i class="fa-solid fa-cog text-xl"></i>
+                        <span class="hidden sm:block">设置</span>
+                    </a>
+                    <a href="#help" class="nav-item">
+                        <i class="fa-solid fa-question-circle text-xl"></i>
+                        <span class="hidden sm:block">帮助中心</span>
+                    </a>
+                    <a href="#logout" class="nav-item">
+                        <i class="fa-solid fa-sign-out-alt text-xl"></i>
+                        <span class="hidden sm:block">退出登录</span>
+                    </a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="flex-1 overflow-y-auto p-4 sm:p-6">
+            <div class="mb-6">
+                <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-dark">数据预测</h2>
+                <p class="text-gray-500">基于AI模型的金融市场预测分析</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2">
+                    <div class="bg-white rounded-xl shadow-card p-5 mb-6">
+                        <h3 class="font-semibold text-lg mb-4">市场趋势预测</h3>
+                        <div class="space-y-4">
+                            <div class="flex flex-col sm:flex-row gap-3">
+                                <div class="flex-1 relative">
+                                    <input type="text" id="predictionSymbol" placeholder="输入股票代码或名称..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                                </div>
+                                <button class="btn-primary whitespace-nowrap">
+                                    <i class="fa-solid fa-magic mr-1"></i> 生成预测
+                                </button>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <option>未来7天</option>
+                                    <option>未来30天</option>
+                                    <option>未来90天</option>
+                                    <option>未来180天</option>
+                                    <option>未来1年</option>
+                                </select>
+                                <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <option>日线</option>
+                                    <option>周线</option>
+                                    <option>月线</option>
+                                </select>
+                                <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <option>价格预测</option>
+                                    <option>波动率预测</option>
+                                    <option>交易量预测</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-card p-5 mb-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-semibold text-lg">苹果公司 (AAPL) 价格预测</h3>
+                            <span class="prediction-confidence confidence-medium">中等可信度</span>
+                        </div>
+                        <div class="h-[400px]">
+                            <canvas id="predictionChart"></canvas>
+                        </div>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                            <div class="bg-gray-50 rounded-lg p-4 text-center">
+                                <p class="text-sm text-gray-500 mb-1">当前价格</p>
+                                <p class="text-2xl font-bold">¥172.45</p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4 text-center">
+                                <p class="text-sm text-gray-500 mb-1">30天预测</p>
+                                <p class="text-2xl font-bold text-success">¥185.20 <span class="text-sm">+7.4%</span></p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4 text-center">
+                                <p class="text-sm text-gray-500 mb-1">90天预测</p>
+                                <p class="text-2xl font-bold text-success">¥198.75 <span class="text-sm">+15.2%</span></p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4 text-center">
+                                <p class="text-sm text-gray-500 mb-1">180天预测</p>
+                                <p class="text-2xl font-bold text-success">¥215.40 <span class="text-sm">+24.9%</span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-card p-5 mb-6">
+                        <h3 class="font-semibold text-lg mb-4">预测分析</h3>
+                        <div class="space-y-4">
+                            <div class="p-4 bg-primary/5 rounded-lg border border-primary/20">
+                                <h4 class="font-medium mb-2">主要驱动因素</h4>
+                                <ol class="list-de
+                                <i class="fa-solid fa-magic mr-1"></i> 生成预测
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                <option>未来7天</option>
+                                <option>未来30天</option>
+                                <option>未来90天</option>
+                                <option>未来180天</option>
+                                <option>未来1年</option>
+                            </select>
+                            <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                <option>日线</option>
+                                <option>周线</option>
+                                <option>月线</option>
+                            </select>
+                            <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                <option>价格预测</option>
+                                <option>波动率预测</option>
+                                <option>交易量预测</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-auto pt-4 border-t border-gray-200">
+                    <a href="#settings" class="nav-item">
+                        <i class="fa-solid fa-cog text-xl"></i>
+                        <span class="hidden sm:block">设置</span>
+                    </a>
+                    <a href="#help" class="nav-item">
+                        <i class="fa-solid fa-question-circle text-xl"></i>
+                        <span class="hidden sm:block">帮助中心</span>
+                    </a>
+                    <a href="#logout" class="nav-item">
+                        <i class="fa-solid fa-sign-out-alt text-xl"></i>
+                        <span class="hidden sm:block">退出登录</span>
+                    </a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="flex-1 overflow-y-auto p-4 sm:p-6">
+            <div class="mb-6">
+                <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-dark">数据预测</h2>
+                <p class="text-gray-500">基于AI模型的金融市场预测分析</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2">
+                    <div class="bg-white rounded-xl shadow-card p-5 mb-6">
+                        <h3 class="font-semibold text-lg mb-4">市场趋势预测</h3>
+                        <div class="space-y-4">
+                            <div class="flex flex-col sm:flex-row gap-3">
+                                <div class="flex-1 relative">
+                                    <input type="text" id="predictionSymbol" placeholder="输入股票代码或名称..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                                </div>
+                                <button class="btn-primary whitespace-nowrap">
+                                    <i class="fa-solid fa-magic mr-1"></i> 生成预测
+                                </button>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <option>未来7天</option>
+                                    <option>未来30天</option>
+                                    <option>未来90天</option>
+                                    <option>未来180天</option>
+                                    <option>未来1年</option>
+                                </select>
+                                <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <option>日线</option>
+                                    <option>周线</option>
+                                    <option>月线</option>
+                                </select>
+                                <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <option>价格预测</option>
+                                    <option>波动率预测</option>
+                                    <option>交易量预测</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-card p-5 mb-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-semibold text-lg">苹果公司 (AAPL) 价格预测</h3>
+                            <span class="prediction-confidence confidence-medium">中等可信度</span>
+                        </div>
+                        <div class="h-[400px]">
+                            <canvas id="predictionChart"></canvas>
+                        </div>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                            <div class="bg-gray-50 rounded-lg p-4 text-center">
+                                <p class="text-sm text-gray-500 mb-1">当前价格</p>
+                                <p class="text-2xl font-bold">¥172.45</p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4 text-center">
+                                <p class="text-sm text-gray-500 mb-1">30天预测</p>
+                                <p class="text-2xl font-bold text-success">¥185.20 <span class="text-sm">+7.4%</span></p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4 text-center">
+                                <p class="text-sm text-gray-500 mb-1">90天预测</p>
+                                <p class="text-2xl font-bold text-success">¥198.75 <span class="text-sm">+15.2%</span></p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4 text-center">
+                                <p class="text-sm text-gray-500 mb-1">180天预测</p>
+                                <p class="text-2xl font-bold text-success">¥215.40 <span class="text-sm">+24.9%</span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-card p-5 mb-6">
+                        <h3 class="font-semibold text-lg mb-4">预测分析</h3>
+                        <div class="space-y-4">
+                            <div class="p-4 bg-primary/5 rounded-lg border border-primary/20">
+                                <h4 class="font-medium mb-2">主要驱动因素</h4>
+                                <ol class="list-de
+                                <i class="fa-solid fa-magic mr-1"></i> 生成预测
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                <option>未来7天</option>
+                                <option>未来30天</option>
+                                <option>未来90天</option>
+                                <option>未来180天</option>
+                                <option>未来1年</option>
+                            </select>
+                            <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                <option>日线</option>
+                                <option>周线</option>
+                                <option>月线</option>
+                            </select>
+                            <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                <option>价格预测</option>
+                                <option>波动率预测</option>
+                                <option>交易量预测</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-auto pt-4 border-t border-gray-200">
+                    <a href="#settings" class="nav-item">
+                        <i class="fa-solid fa-cog text-xl"></i>
+                        <span class="hidden sm:block">设置</span>
+                    </a>
+                    <a href="#help" class="nav-item">
+                        <i class="fa-solid fa-question-circle text-xl"></i>
+                        <span class="hidden sm:block">帮助中心</span>
+                    </a>
+                    <a href="#logout" class="nav-item">
+                        <i class="fa-solid fa-sign-out-alt text-xl"></i>
+                        <span class="hidden sm:block">退出登录</span>
+                    </a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="flex-1 overflow-y-auto p-4 sm:p-6">
+            <div class="mb-6">
+                <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-dark">数据预测</h2>
+                <p class="text-gray-500">基于AI模型的金融市场预测分析</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2">
+                    <div class="bg-white rounded-xl shadow-card p-5 mb-6">
+                        <h3 class="font-semibold text-lg mb-4">市场趋势预测</h3>
+                        <div class="space-y-4">
+                            <div class="flex flex-col sm:flex-row gap-3">
+                                <div class="flex-1 relative">
+                                    <input type="text" id="predictionSymbol" placeholder="输入股票代码或名称..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                                </div>
+                                <button class="btn-primary whitespace-nowrap">
+                                    <i class="fa-solid fa-magic mr-1"></i> 生成预测
+                                </button>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <option>未来7天</option>
+                                    <option>未来30天</option>
+                                    <option>未来90天</option>
+                                    <option>未来180天</option>
+                                    <option>未来1年</option>
+                                </select>
+                                <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <option>日线</option>
+                                    <option>周线</option>
+                                    <option>月线</option>
+                                </select>
+                                <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <option>价格预测</option>
+                                    <option>波动率预测</option>
+                                    <option>交易量预测</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-card p-5 mb-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-semibold text-lg">苹果公司 (AAPL) 价格预测</h3>
+                            <span class="prediction-confidence confidence-medium">中等可信度</span>
+                        </div>
+                        <div class="h-[400px]">
+                            <canvas id="predictionChart"></canvas>
+                        </div>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                            <div class="bg-gray-50 rounded-lg p-4 text-center">
+                                <p class="text-sm text-gray-500 mb-1">当前价格</p>
+                                <p class="text-2xl font-bold">¥172.45</p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4 text-center">
+                                <p class="text-sm text-gray-500 mb-1">30天预测</p>
+                                <p class="text-2xl font-bold text-success">¥185.20 <span class="text-sm">+7.4%</span></p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4 text-center">
+                                <p class="text-sm text-gray-500 mb-1">90天预测</p>
+                                <p class="text-2xl font-bold text-success">¥198.75 <span class="text-sm">+15.2%</span></p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4 text-center">
+                                <p class="text-sm text-gray-500 mb-1">180天预测</p>
+                                <p class="text-2xl font-bold text-success">¥215.40 <span class="text-sm">+24.9%</span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-card p-5 mb-6">
+                        <h3 class="font-semibold text-lg mb-4">预测分析</h3>
+                        <div class="space-y-4">
+                            <div class="p-4 bg-primary/5 rounded-lg border border-primary/20">
+                                <h4 class="font-medium mb-2">主要驱动因素</h4>
+                                <ol class="list-de
+                                <i class="fa-solid fa-magic mr-1"></i> 生成预测
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                <option>未来7天</option>
+                                <option>未来30天</option>
+                                <option>未来90天</option>
+                                <option>未来180天</option>
+                                <option>未来1年</option>
+                            </select>
+                            <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                <option>日线</option>
+                                <option>周线</option>
+                                <option>月线</option>
+                            </select>
+                            <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                <option>价格预测</option>
+                                <option>波动率预测</option>
+                                <option>交易量预测</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-auto pt-4 border-t border-gray-200">
+                    <a href="#settings" class="nav-item">
+                        <i class="fa-solid fa-cog text-xl"></i>
+                        <span class="hidden sm:block">设置</span>
+                    </a>
+                    <a href="#help" class="nav-item">
+                        <i class="fa-solid fa-question-circle text-xl"></i>
+                        <span class="hidden sm:block">帮助中心</span>
+                    </a>
+                    <a href="#logout" class="nav-item">
+                        <i class="fa-solid fa-sign-out-alt text-xl"></i>
+                        <span class="hidden sm:block">退出登录</span>
+                    </a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="flex-1 overflow-y-auto p-4 sm:p-6">
+            <div class="mb-6">
+                <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-dark">数据预测</h2>
+                <p class="text-gray-500">基于AI模型的金融市场预测分析</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2">
+                    <div class="bg-white rounded-xl shadow-card p-5 mb-6">
+                        <h3 class="font-semibold text-lg mb-4">市场趋势预测</h3>
+                        <div class="space-y-4">
+                            <div class="flex flex-col sm:flex-row gap-3">
+                                <div class="flex-1 relative">
+                                    <input type="text" id="predictionSymbol" placeholder="输入股票代码或名称..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                                </div>
+                                <button class="btn-primary whitespace-nowrap">
+                                    <i class="fa-solid fa-magic mr-1"></i> 生成预测
+                                </button>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <select class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/2
