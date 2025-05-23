@@ -703,3 +703,65 @@ def analyze_market_data(request):
 #                 'status': 'error',
 #                 'message': '数据分析失败'
 #             }, status=500)
+from django.views.decorators.csrf import csrf_exempt
+
+
+@csrf_exempt
+def analyze_portfolio_risk(request):
+    """分析投资组合风险"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            portfolio = data.get('portfolio')
+            risk_preference = data.get('risk_preference')
+            
+            if not all([portfolio, risk_preference]):
+                return JsonResponse({
+                    'status': 'error',
+                    'message': '缺少必要参数'
+                }, status=400)
+            
+            advisor = InvestmentAdvisor()
+            analysis = advisor.analyze_portfolio(portfolio, risk_preference)
+            
+            if analysis:
+                return JsonResponse({
+                    'status': 'success',
+                    'data': analysis
+                })
+            else:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': '投资组合分析失败'
+                }, status=500)
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            }, status=500)
+
+
+# import logging
+# logger = logging.getLogger(__name__)
+
+# @csrf_exempt
+# def analyze_portfolio_risk(request):
+#     if request.method == 'POST':
+#         try:
+#             data = json.loads(request.body)
+#             portfolio = data.get('portfolio')
+#             if not portfolio:
+#                 logger.warning('analyze_portfolio_risk: 缺少投资组合参数')
+#                 return JsonResponse({'status': 'error', 'message': '缺少投资组合参数'}, status=400)
+#             monitor = RiskMonitor()
+#             result = monitor.analyze_portfolio_risk(portfolio)
+#             if result:
+#                 return JsonResponse({'status': 'success', 'data': result})
+#             else:
+#                 logger.error('analyze_portfolio_risk: 风险分析失败')
+#                 return JsonResponse({'status': 'error', 'message': '风险分析失败'}, status=500)
+#         except Exception as e:
+#             logger.exception('analyze_portfolio_risk: 异常')
+#             return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+#     else:
+#         return JsonResponse({'status': 'error', 'message': '仅支持POST请求'}, status=405)

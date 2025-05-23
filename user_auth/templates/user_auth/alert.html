@@ -452,21 +452,26 @@
         }
     
         async function loadMarketAlerts() {
+            const alertsContainer = document.getElementById('alertsContainer');
+            alertsContainer.innerHTML = '<div>加载中...</div>';
             try {
                 const response = await fetch('/api/risk/market/');
                 const data = await response.json();
-                
                 if (data.status === 'success') {
-                    const alertsContainer = document.getElementById('alertsContainer');
+                    if (data.data.length === 0) {
+                        alertsContainer.innerHTML = '<div>暂无风险警报</div>';
+                        return;
+                    }
                     alertsContainer.innerHTML = '';
-                    
                     data.data.forEach(alert => {
                         const alertElement = createAlertElement(alert);
                         alertsContainer.appendChild(alertElement);
                     });
+                } else {
+                    alertsContainer.innerHTML = '<div>加载失败：' + data.message + '</div>';
                 }
             } catch (error) {
-                console.error('加载市场警报失败：', error);
+                alertsContainer.innerHTML = '<div>加载市场警报失败，请稍后重试</div>';
             }
         }
     
